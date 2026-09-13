@@ -2,7 +2,9 @@ import { mkdtemp, mkdir, writeFile, rm, readFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, expect, test } from 'vitest';
-import { createAgentSession, ModelRuntime, SessionManager, loadSkillsFromDir, createWriteToolDefinition, type ToolDefinition } from '@earendil-works/pi-coding-agent';
+import { createAgentSession, ModelRuntime, SessionManager, loadSkillsFromDir, createWriteToolDefinition,
+  createReadToolDefinition, createEditToolDefinition, createBashToolDefinition,
+  createGrepToolDefinition, createFindToolDefinition, createLsToolDefinition, type ToolDefinition } from '@earendil-works/pi-coding-agent';
 import { createAssistantMessageEventStream, type AssistantMessage, type Context } from '@earendil-works/pi-ai';
 import { Type } from 'typebox';
 import { isolatedResources } from '../../src/pi/resources.js';
@@ -25,6 +27,16 @@ test('P0: real Pi tools, asynchronous contact, literal steering, native save/reo
   expect(skills).toHaveLength(2);
   const runtime = await ModelRuntime.create({ authPath: join(root, 'auth.json'), modelsPath: null, allowModelNetwork: false, refreshOnCreate: false });
   const requests: Context[] = [];
+  const toolCalls = [
+    { name: 'write', arguments: { path: 'guarded.txt', content: 'data only' } },
+    { name: 'read', arguments: { path: 'source.txt' } },
+    { name: 'edit', arguments: { path: 'source.txt', edits: [{ oldText: 'old', newText: 'new' }] } },
+    { name: 'bash', arguments: { command: 'exit 0' } },
+    { name: 'grep', arguments: { pattern: 'test' } },
+    { name: 'find', arguments: { pattern: '*.txt' } },
+    { name: 'ls', arguments: {} },
+    { name: 'contact_main', arguments: { message: 'Need context' } },
+  ];
   let calls = 0;
   runtime.registerProvider('local-fixture', {
     api: 'openai-completions', apiKey: 'fake', baseUrl: 'http://127.0.0.1:1',
@@ -36,9 +48,8 @@ test('P0: real Pi tools, asynchronous contact, literal steering, native save/reo
       const message: AssistantMessage = {
         role: 'assistant', api: model.api, provider: model.provider, model: model.id, timestamp: Date.now(),
         usage: { input: 1, output: 1, cacheRead: 0, cacheWrite: 0, totalTokens: 2, cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 } },
-        content: turn === 0 ? [{ type: 'toolCall', id: 'w1', name: 'write', arguments: { path: 'guarded.txt', content: 'data only' } }]
-          : turn === 1 ? [{ type: 'toolCall', id: 'q1', name: 'contact_main', arguments: { message: 'Need context' } }] : [{ type: 'text', text: 'done' }],
-        stopReason: turn < 2 ? 'toolUse' : 'stop',
+        content: toolCalls[turn] ? [{ type: 'toolCall', id: `call-${turn}`, ...toolCalls[turn] }] : [{ type: 'text', text: 'done' }],
+        stopReason: toolCalls[turn] ? 'toolUse' : 'stop',
       };
       queueMicrotask(() => { stream.push({ type: 'start', partial: message }); stream.push({ type: 'done', reason: message.stopReason as 'stop' | 'toolUse', message }); stream.end(message); });
       return stream;
@@ -61,20 +72,26 @@ test('P0: real Pi tools, asynchronous contact, literal steering, native save/reo
     mkdir: async () => {},
     writeFile: async (path, content) => { guardedWrites.push({ path, content }); },
   } });
+  const calledGuards: string[] = [];
+  const guarded = [createReadToolDefinition(cwd), createEditToolDefinition(cwd), createBashToolDefinition(cwd),
+    createGrepToolDefinition(cwd), createFindToolDefinition(cwd), createLsToolDefinition(cwd)].map(definition => ({
+      ...definition, execute: async () => { calledGuards.push(definition.name); return { content: [{ type: 'text', text: 'guarded fixture result' }], details: {} }; },
+    }) as unknown as ToolDefinition);
   const manager = SessionManager.create(cwd, join(root, 'sessions'));
-  const { session } = await createAgentSession({ cwd, agentDir, modelRuntime: runtime, model, tools: ['contact_main', 'read', 'write'],
-    customTools: [contact, writer as unknown as ToolDefinition, { name: 'read', label: 'Guarded read', description: 'Fixture guard', parameters: Type.Object({ path: Type.String() }), execute: async () => { throw new Error('Fixture read must not execute'); } }],
+  const { session } = await createAgentSession({ cwd, agentDir, modelRuntime: runtime, model, tools: toolCalls.map(tool => tool.name),
+    customTools: [contact, writer as unknown as ToolDefinition, ...guarded],
     resourceLoader: resources.loader, settingsManager: resources.settingsManager, sessionManager: manager, thinkingLevel: 'high' });
   // Upstream clamps: production must reject this mismatch before inference.
   expect(session.thinkingLevel).toBe('off');
   expect(() => confirmIdentity(session, { provider: 'local-fixture', id: 'fixture' }, 'high')).toThrow('UNSUPPORTED_THINKING');
   expect(() => confirmIdentity(session, { provider: 'other', id: 'fixture' })).toThrow('MODEL_CONFIGURATION_MISMATCH');
   expect(calls).toBe(0);
-  expect(session.getActiveToolNames().sort()).toEqual(['contact_main', 'read', 'write']);
+  expect(session.getActiveToolNames().sort()).toEqual(toolCalls.map(tool => tool.name).sort());
   const prompt = session.prompt('/skill:one literal task', { expandPromptTemplates: false });
   await Promise.race([questionOpened, prompt.then(() => { throw new Error('Prompt ended before question: ' + JSON.stringify(session.messages)); })]);
   expect(session.isIdle).toBe(false);
   expect(guardedWrites).toEqual([{ path: join(cwd, 'guarded.txt'), content: 'data only' }]);
+  expect(calledGuards).toEqual(['read', 'edit', 'bash', 'grep', 'find', 'ls']);
   await expect(readFile(join(cwd, 'guarded.txt'))).rejects.toThrow();
   await session.prompt('/skill:two literal steering', { streamingBehavior: 'steer', expandPromptTemplates: false });
   answer('correlated answer');

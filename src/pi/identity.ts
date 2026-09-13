@@ -1,6 +1,6 @@
 import type { AgentSession, ModelRuntime } from '@earendil-works/pi-coding-agent';
 
-export function requireModel(runtime: ModelRuntime, requested: { provider: string; id: string }) {
+export function requireModel(runtime: ModelRuntime, requested: { provider: string; id: string }): NonNullable<ReturnType<ModelRuntime['getModel']>> {
   const model = runtime.getModel(requested.provider, requested.id);
   if (!model) throw new Error('MODEL_UNAVAILABLE');
   return model;

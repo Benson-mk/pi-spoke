@@ -48,7 +48,7 @@ The P0 launcher is a disposable compatibility probe, not an application endpoint
 Each invocation initializes its own SRT manager with sanitized environment and
 private scratch. There is no raw-execution fallback. The public argv wrapper on
 macOS still returns an outer Bash `-c` command invoking Seatbelt; production
-wrapper validation and process supervision remain required.
+wrapper quoting probes pass; full production process supervision remains required.
 
 Upstream adds `/tmp/claude`, `/private/tmp/claude`, `$HOME/.npm/_logs`,
 `$HOME/.claude/debug`, and six device paths to write grants. The probe denies the
@@ -59,7 +59,8 @@ short random `/private/tmp/ps-*` directories. No whole `/tmp` grant is added.
 
 Canaries show denied source unlink/truncate/redirection, denied unrelated
 temporary/outside writes, permitted scratch create/delete, and a separately
-writable helper envelope. Nested secret denies survive a workspace read
+writable fixed helper envelope using Pi's public exact-edit implementation and
+typed atomic writes. Nested secret denies survive a workspace read
 exception; secret rename and missing protected-directory creation fail.
 IPv4/IPv6 loopback, Unix sockets, and listening return EPERM. Concurrent
 launchers do not share writable grants.
@@ -78,7 +79,7 @@ is not a passing S20 release result.
 
 ## Remaining gates
 
-Linux, full guarded tool integration, hostile wrapper inputs, Apple Events,
+Linux, full supervised tool integration, Apple Events,
 all acceptance cases, crash/descendant cleanup, performance, manual Codex use,
 and two live providers plus vision remain unqualified. An enclosing Codex
 sandbox blocks SRT socket creation; run disposable canaries on an authorized

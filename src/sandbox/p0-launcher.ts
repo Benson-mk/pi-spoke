@@ -8,6 +8,7 @@ const input = z.strictObject({
   cwd: z.string(), scratch: z.string(), command: z.string().max(65536),
   readDeny: z.array(z.string()), readAllow: z.array(z.string()),
   writeAllow: z.array(z.string()), writeDeny: z.array(z.string()),
+  stdin: z.string().max(1024 * 1024).optional(),
 });
 let bytes = 0, text = '';
 for await (const chunk of process.stdin) {
@@ -36,8 +37,9 @@ try {
     throw new Error('SANDBOX_POLICY_UNSUPPORTED: P0 wrapper shape has not been validated on this platform');
   }
   const child = spawn(wrapped.argv[0], wrapped.argv.slice(1), {
-    cwd: probe.cwd, shell: false, env: process.env, stdio: ['ignore', 'pipe', 'pipe'],
+    cwd: probe.cwd, shell: false, env: process.env, stdio: ['pipe', 'pipe', 'pipe'],
   });
+  child.stdin.end(probe.stdin ?? '');
   let stdout = '', stderr = '';
   child.stdout.on('data', b => { stdout += b; if (stdout.length > 65536) child.kill('SIGKILL'); });
   child.stderr.on('data', b => { stderr += b; if (stderr.length > 65536) child.kill('SIGKILL'); });

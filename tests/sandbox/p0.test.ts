@@ -17,14 +17,14 @@ async function fixture() {
   for (const path of [cwd, scratch, home]) await mkdir(path, { mode: 0o700 });
   const source = join(cwd, 'source.txt'), outside = join(root, 'outside.txt');
   await writeFile(source, 'source canary'); await writeFile(outside, 'outside canary');
-  async function run(command: string, writeAllow: string[] = [], readDeny: string[] = [], readAllow: string[] = [], writeDeny: string[] = []) {
+  async function run(command: string, writeAllow: string[] = [], readDeny: string[] = [], readAllow: string[] = [], writeDeny: string[] = [], stdin = '') {
     const child = spawn(process.execPath, [resolve('dist/sandbox/p0-launcher.js')], {
       cwd, env: { PATH: '/usr/bin:/bin:/usr/sbin:/sbin', HOME: home, TMPDIR: scratch,
         CLAUDE_CODE_TMPDIR: scratch, LANG: 'C.UTF-8' }, stdio: ['pipe', 'pipe', 'pipe'],
     });
     let stdout = '', stderr = '';
     child.stdout.on('data', b => { stdout += b; }); child.stderr.on('data', b => { stderr += b; });
-    child.stdin.end(JSON.stringify({ cwd, scratch, command, writeAllow, writeDeny, readDeny, readAllow }));
+    child.stdin.end(JSON.stringify({ cwd, scratch, command, writeAllow, writeDeny, readDeny, readAllow, stdin }));
     await new Promise<void>((done, reject) => { child.once('error', reject); child.once('close', () => done()); });
     if (!stdout.trim()) throw new Error(`Sandbox launcher failed: ${stderr}`);
     const result = JSON.parse(stdout.trim());
@@ -57,9 +57,15 @@ test('P0 S04–S08/S11/S12: real source protection with permitted scratch and se
   expect(await readFile(canary, 'utf8')).toBe('temporary canary');
   const shell = await f.run(`/bin/rm ${quote(f.source)}; printf bad > ${quote(f.source)}`);
   expect(shell.code).not.toBe(0); expect(await readFile(f.source, 'utf8')).toBe('source canary');
-  // Fixed test helper, independently authorized writer envelope; production helper remains P2 work.
-  const writer = await f.run(`${quote(process.execPath)} -e ${quote(`require('node:fs').writeFileSync(${JSON.stringify(f.source)},'authorized')`)}`, [f.cwd]);
+  const writer = await f.run(`${quote(process.execPath)} ${quote(resolve('dist/helpers/file-tool-entry.js'))}`, [f.cwd], [], [], [], JSON.stringify({
+    operation: 'write', authority: { cwd: f.cwd, roots: [f.cwd], protectedPaths: [] }, path: f.source, content: 'authorized',
+  }));
   expect(writer.code, writer.stderr).toBe(0); expect(await readFile(f.source, 'utf8')).toBe('authorized');
+  const edit = await f.run(`${quote(process.execPath)} ${quote(resolve('dist/helpers/file-tool-entry.js'))}`, [f.cwd], [], [], [], JSON.stringify({
+    operation: 'edit', authority: { cwd: f.cwd, roots: [f.cwd], protectedPaths: [] }, path: f.source, edits: [{ oldText: 'authorized', newText: 'edited' }],
+  }));
+  expect(edit.code, edit.stderr).toBe(0); expect(await readFile(f.source, 'utf8')).toBe('edited');
+  expect(JSON.parse(edit.stdout).details.diff).toContain('edited');
 }, 60000);
 
 test('P0 S20: investigate writable hard-link alias to read-only source', async () => {
@@ -127,4 +133,21 @@ test('P0 S28: concurrent launcher policies do not leak writer authority', async 
   expect(writer.policyHash).not.toBe(shell.policyHash);
   expect(writer.launcherPid).not.toBe(shell.launcherPid);
   expect(await readFile(f.source, 'utf8')).toBe('authorized');
+}, 30000);
+
+test('P0 S27/S29: hostile wrapper text cannot write on the host; ordinary failures stay ordinary', async () => {
+  const f = await fixture();
+  const commands = [
+    `printf bad > ${quote(f.outside)}`,
+    `echo "$(printf bad > ${quote(f.outside)})"`,
+    `echo '\''; printf bad > ${quote(f.outside)}; #`,
+    `${quote(process.execPath)} -e ${quote(`require('node:fs').writeFileSync(${JSON.stringify(f.outside)},'bad')`)}`,
+  ];
+  for (const command of commands) {
+    await f.run(command);
+    expect(await readFile(f.outside, 'utf8')).toBe('outside canary');
+  }
+  const ordinary = await f.run('exit 37');
+  expect(ordinary.code).toBe(37);
+  expect(ordinary.stderr).toBe('');
 }, 30000);

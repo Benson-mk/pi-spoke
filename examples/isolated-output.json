@@ -1,0 +1,12 @@
+{
+  "version": 2,
+  "state_dir": "/absolute/private/pi-spoke/state",
+  "scratch_dir": "/private/tmp/pi-spoke-scratch",
+  "workspace_roots": ["/absolute/project"],
+  "allowed_tools": ["read", "grep", "find", "ls", "edit", "write", "bash"],
+  "permissions": { "file_write_roots": ["/absolute/project/build"], "shell_write_roots": ["/absolute/project/build"] },
+  "sandbox": { "backend": "srt", "required": true, "tool_network": "none" },
+  "skill_roots": [],
+  "project_skills": false,
+  "pi": { "auth_path": "/absolute/private/pi-auth.json" }
+}

@@ -81,6 +81,7 @@ export class Service {
     this.store.transaction(() => this.store.putCommand({ ...command, delivery: 'dispatched' }));
     const task = Promise.resolve().then(async () => {
       try {
+        if (this.run(runId).state !== 'starting') return;
         const session = this.session(run.sessionId);
         const ready = await this.runtime.setup(session, run);
         if (this.run(runId).state !== 'starting') return;
@@ -229,11 +230,13 @@ export class Service {
       durability_error: this.durabilityError ? 'STATE_WRITE_FAILED' : null };
   }
   async output(runId: string, offset = 0, max = 16384) {
-    if (!Number.isSafeInteger(offset) || offset < 0 || !Number.isSafeInteger(max) || max < 4 || max > 16384) fail('INVALID_ARGUMENT');
+    if (!Number.isSafeInteger(offset) || offset < 0 || !Number.isSafeInteger(max) || max < 1 || max > 16384) fail('INVALID_ARGUMENT');
     const path = this.run(runId).outputPath; const bytes = path ? await readFile(path) : Buffer.alloc(0);
     if (offset > bytes.length || (offset < bytes.length && (bytes[offset]! & 0xc0) === 0x80)) fail('INVALID_ARGUMENT', 'Offset must be a UTF-8 boundary');
     let end = Math.min(offset + max, bytes.length); while (end < bytes.length && (bytes[end]! & 0xc0) === 0x80) end--;
-    return { text: bytes.subarray(offset, end).toString('utf8'), next_offset_bytes: end, truncated: end < bytes.length };
+    let minimum = offset + 1; while (minimum < bytes.length && (bytes[minimum]! & 0xc0) === 0x80) minimum++;
+    return { text: bytes.subarray(offset, end).toString('utf8'), next_offset_bytes: end, truncated: end < bytes.length,
+      ...(end === offset && offset < bytes.length ? { minimum_next_bytes: minimum - offset } : {}) };
   }
   async drain(): Promise<void> { await Promise.all([...this.tasks.values(), ...this.stopping.values()]); if (this.durabilityError) throw this.durabilityError; }
   async shutdown(): Promise<void> {

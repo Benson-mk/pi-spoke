@@ -1,0 +1,10 @@
+[mcp_servers.pi_spoke]
+command = "/absolute/path/to/node24/bin/node"
+args = [
+  "/absolute/path/to/pi-spoke/dist/cli.js",
+  "serve",
+  "--config", "/absolute/private/pi-spoke.json",
+  "--instance", "codex-project-a"
+]
+startup_timeout_sec = 20
+tool_timeout_sec = 45

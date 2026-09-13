@@ -51,6 +51,7 @@ async function handle(value: unknown) {
     if (run.id !== runId || run.sessionId !== savedSession.id) throw new Error('IPC_IDENTITY_MISMATCH');
     const runtime = await ModelRuntime.create({ authPath: config.pi.auth_path, modelsPath: config.pi.models_path ?? null,
       allowModelNetwork: false, refreshOnCreate: false, modelsStorePath: message.sessionDir + '/model-cache.json' });
+    if (stopped) return;
     const model = requireModel(runtime, savedSession.input.model);
     const resources = await isolatedResources(savedSession.policy.cwd, message.sessionDir, await nativeSkills(savedSession.policy.resources?.skills ?? []), message.context);
     if (savedSession.checkpoint && createHash('sha256').update(await readFile(savedSession.checkpoint.path)).digest('hex') !== savedSession.checkpoint.hash) {
@@ -66,6 +67,7 @@ async function handle(value: unknown) {
       tools: [...savedSession.input.tools, 'contact_main'], customTools, resourceLoader: resources.loader, settingsManager: resources.settingsManager, sessionManager: manager };
     if (savedSession.input.thinking !== undefined) options.thinkingLevel = savedSession.input.thinking as CreateAgentSessionOptions['thinkingLevel'] & string;
     const created = await createAgentSession(options); session = created.session;
+    if (stopped) { session.dispose(); return; }
     if (created.modelFallbackMessage) throw new Error('MODEL_CONFIGURATION_MISMATCH');
     const identity = confirmIdentity(session, savedSession.input.model, savedSession.input.thinking);
     let turns = 0;

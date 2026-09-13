@@ -9,8 +9,8 @@ Release readiness: **NOT READY**. No platform is currently claimed supported.
 | P1 durable core and permissions | PASS (core slice) | Strict schemas, authority resolver, SQLite receipts/state and deterministic lifecycle/fault tests |
 | P2 supervised execution | PARTIAL; cleanup gate unresolved | Real supervised Pi, guarded file tools, images, checkpoints and provider cancellation pass; arbitrary shell descendant cleanup is unconfirmed |
 | P3 skills and communication | PASS (local execution slice) | Public Pi metadata/selection, immutable sandboxed skill reads, durable contact/reply contracts |
-| P4 MCP and operations | NOT RUN | Depends on P3 |
-| P5 release gates | NOT RUN | All acceptance, host, platform, live and performance evidence required |
+| P4 MCP and operations | PASS (automated slice); manual host NOT RUN | Compiled stdio client exercises all six tools; operator CLI and examples present |
+| P5 release gates | IN PROGRESS | Complete coverage audit, faults, compatibility invalidation and performance; host/live gates remain external |
 
 Initial inspection: clean tree at `af700dd`; documentation only. Read issue #1,
 its `ready-for-agent` label and empty comments; no contract discrepancy.
@@ -78,3 +78,15 @@ selected content rejects continuation. A real worker persists note/question/
 improvement messages, waits without extra inference, accepts one correlated
 literal reply, and does not apply the proposed improvement. Public MCP coverage
 and broader release fault tests remain P4/P5 work.
+
+`1ca3d9f` records P3. P4 full `npm run verify` passes on the qualified local Node
+runtime: 2 unit, 7 Pi contract, 14 integration and 9 actual-sandbox tests. The
+compiled MCP SDK subprocess test covers all six tools, strict argument errors,
+receipt duplicates/conflicts, correlated question replies, non-mutating observe,
+explicit continuation, sessions, repeated cancel and UTF-8 byte pagination.
+Operator tests verify plain doctor does not create state, incompatible flags fail,
+live recorded PIDs block recovery, and GC retains request-key tombstones.
+Three version-2 configurations and a Codex TOML example are documented in
+[operations](operations.md). Codex configuration fields were checked against the
+official documentation; **manual Codex interaction remains NOT RUN**. Nothing
+has been installed into the host or pushed/published.

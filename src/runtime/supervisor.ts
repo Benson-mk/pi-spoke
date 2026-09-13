@@ -73,6 +73,8 @@ export class Supervisor implements Runtime {
     for (const key of ['NODE_OPTIONS','NODE_PATH','BASH_ENV','ENV','LD_PRELOAD','DYLD_INSERT_LIBRARIES']) delete environment[key];
     const child = fork(join(this.runtimeRoot, 'dist/runtime/worker-entry.js'), [], { cwd: session.policy.cwd, execPath: process.execPath, env: environment,
       stdio: ['ignore','pipe','pipe','ipc'], serialization: 'json', detached: true }); entry.child = child;
+    manifest = { ...manifest, worker_pid: child.pid, worker_started_at: Date.now() };
+    this.store.transaction(() => this.store.event(run.id, 'worker_started', { pid: child.pid, started_at: Date.now() }));
     let diagnosticBytes = 0;
     const discardBounded = (bytes: Buffer) => { diagnosticBytes += bytes.length; if (diagnosticBytes > 65536) { entry.ready.reject(new Error('LIMIT_EXCEEDED')); entry.done.reject(new Error('LIMIT_EXCEEDED')); child.kill('SIGTERM'); } };
     child.stdout!.on('data', discardBounded); child.stderr!.on('data', discardBounded);
@@ -153,8 +155,8 @@ export class Supervisor implements Runtime {
         } catch (error) {
           entry.uncertainTool = true;
           this.store.transaction(() => this.store.putInvocation({ ...invocation, state: 'uncertain', cleanup: 'unconfirmed', evidence: { ...invocation.evidence, error: 'TOOL_FAILED' } }));
-          if (!entry.closing) this.post(entry, { kind: 'tool_result', callId: message.callId, result: null, error: redact(error instanceof Error ? error.message : 'INTERNAL_ERROR') });
-          if (error instanceof SpokeError && ['SANDBOX_SETUP_FAILED','SANDBOX_UNAVAILABLE','POLICY_CHANGED'].includes(error.code)) void this.service?.cancel(entry.run.id, error.code);
+          // An uncertain execution outcome is a stop condition, never a prompt to retry a mutation.
+          if (!entry.closing) void this.service?.cancel(entry.run.id, error instanceof SpokeError ? error.code : 'TOOL_OUTCOME_UNCERTAIN');
         }
       };
       const args = message.args as { path?: unknown };

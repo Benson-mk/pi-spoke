@@ -4,6 +4,7 @@ import { isolatedResources } from '../pi/resources.js';
 import { guardedTools } from '../pi/tools.js';
 import { confirmIdentity, requireModel } from '../pi/identity.js';
 import { checkpoint, reopenCheckpoint } from '../pi/checkpoints.js';
+import { nativeSkills } from '../pi/skills.js';
 import type { Session, Run } from '../core/types.js';
 import { configSchema, type OperatorConfig } from '../config.js';
 import { open, readFile } from 'node:fs/promises';
@@ -51,7 +52,7 @@ async function handle(value: unknown) {
     const runtime = await ModelRuntime.create({ authPath: config.pi.auth_path, modelsPath: config.pi.models_path ?? null,
       allowModelNetwork: false, refreshOnCreate: false, modelsStorePath: message.sessionDir + '/model-cache.json' });
     const model = requireModel(runtime, savedSession.input.model);
-    const resources = await isolatedResources(savedSession.policy.cwd, message.sessionDir, [], message.context);
+    const resources = await isolatedResources(savedSession.policy.cwd, message.sessionDir, await nativeSkills(savedSession.policy.resources?.skills ?? []), message.context);
     if (savedSession.checkpoint && createHash('sha256').update(await readFile(savedSession.checkpoint.path)).digest('hex') !== savedSession.checkpoint.hash) {
       recoveryNotice = `Recovery: continuing from confirmed checkpoint ${savedSession.checkpoint.leaf}. The prior run may have changed the workspace; unfinished tool outcomes are uncertain and must not be automatically replayed.\n\n`;
     }

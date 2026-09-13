@@ -8,7 +8,7 @@ Release readiness: **NOT READY**. No platform is currently claimed supported.
 | P0 public APIs and OS enforcement | PASS (macOS compatibility slice) | Exact lock; real Pi public APIs; six real OS probes and typed helper integration |
 | P1 durable core and permissions | PASS (core slice) | Strict schemas, authority resolver, SQLite receipts/state and deterministic lifecycle/fault tests |
 | P2 supervised execution | PARTIAL; cleanup gate unresolved | Real supervised Pi, guarded file tools, images, checkpoints and provider cancellation pass; arbitrary shell descendant cleanup is unconfirmed |
-| P3 skills and communication | NOT RUN | Depends on P2 |
+| P3 skills and communication | PASS (local execution slice) | Public Pi metadata/selection, immutable sandboxed skill reads, durable contact/reply contracts |
 | P4 MCP and operations | NOT RUN | Depends on P3 |
 | P5 release gates | NOT RUN | All acceptance, host, platform, live and performance evidence required |
 
@@ -68,3 +68,13 @@ is independently attested. No wrapper-exit heuristic claims descendant cleanup.
 Full parent-death/double-fork qualification remains unresolved; independent
 skills, communication, transport and operator work can proceed against the
 verified no-tool and fixed-file-helper paths. Release remains NOT READY.
+
+`491926e` records the P2 supervised implementation. P3 verification passes strict
+typecheck, 7 Pi contract tests and 9 actual-sandbox tests. Selected skill IDs and
+hashes use Pi's public metadata loader; disabled skills and name collisions are
+rejected. Two suggested skills can remain unread; explicit continuation can clear
+the shortlist. External selected skill reads succeed and writes fail; changed
+selected content rejects continuation. A real worker persists note/question/
+improvement messages, waits without extra inference, accepts one correlated
+literal reply, and does not apply the proposed improvement. Public MCP coverage
+and broader release fault tests remain P4/P5 work.

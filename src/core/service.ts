@@ -38,6 +38,11 @@ export class Service {
     return next;
   }
   private notify(id: string) { this.changes.emit(id); }
+  recordEvent(runId: string, type: string, payload: unknown, source?: string): number {
+    this.run(runId);
+    const seq = this.store.transaction(() => this.store.event(runId, type, payload, source));
+    this.notify(runId); return seq;
+  }
   async spawn(raw: unknown): Promise<Receipt> {
     if (this.shuttingDown) fail('RUN_NOT_ACTIVE', 'Supervisor is shutting down');
     if (this.durabilityError) fail('STATE_WRITE_FAILED');

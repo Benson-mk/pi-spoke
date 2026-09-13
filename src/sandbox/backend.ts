@@ -41,7 +41,7 @@ export class Sandbox {
       writeAllow: writer ? policy.file_write_roots : policy.shell_write_roots,
       writeDeny: policy.protected_write_paths,
       readDeny: [homedir(), root, ...policy.protected_read_paths],
-      readAllow: [policy.workspace, scratch, this.runtimeRoot, ...this.config.sandbox.additional_toolchain_read_paths],
+      readAllow: [policy.workspace, scratch, this.runtimeRoot, ...(policy.resources?.skills.map(skill => skill.baseDir) ?? []), ...this.config.sandbox.additional_toolchain_read_paths],
     };
     if (Buffer.byteLength(JSON.stringify(payload)) > 1024 * 1024) fail('LIMIT_EXCEEDED');
     if (this.cancelled.has(runId)) fail('RUN_NOT_ACTIVE');
@@ -90,7 +90,7 @@ export class Sandbox {
     }
     const input = z.record(z.string(), z.unknown()).parse(args);
     const operation = name;
-    const authority = { cwd: policy.cwd, roots: name === 'write' || name === 'edit' ? policy.file_write_roots : [policy.workspace],
+    const authority = { cwd: policy.cwd, roots: name === 'write' || name === 'edit' ? policy.file_write_roots : [policy.workspace, ...(policy.resources?.skills.map(skill => skill.baseDir) ?? [])],
       protectedPaths: name === 'write' || name === 'edit' ? policy.protected_write_paths : policy.protected_read_paths };
     let rg: string | undefined;
     if (name === 'grep' || name === 'find') {

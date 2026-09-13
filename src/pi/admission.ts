@@ -10,6 +10,7 @@ import type { ResourceManifest, ImageResource } from '../core/resources.js';
 import { checkedTarget, within } from '../helpers/file-operations.js';
 import { fail } from '../core/errors.js';
 import { requireModel } from './identity.js';
+import { selectSkills } from './skills.js';
 
 export async function admitResources(config: OperatorConfig, input: SpawnInput, policy: ResolvedPolicy, runtime: ModelRuntime): Promise<ResourceManifest> {
   const model = requireModel(runtime, input.model);
@@ -51,5 +52,5 @@ export async function admitResources(config: OperatorConfig, input: SpawnInput, 
     finally { await output?.close(); }
     images.push({ path, source, hash, mimeType });
   }
-  return { context, images, skills: [] };
+  return { context, images, skills: await selectSkills(config, policy.cwd, input.suggested_skills) };
 }

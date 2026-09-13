@@ -119,7 +119,7 @@ export class Supervisor implements Runtime {
       if (message.event === 'limit_reached') { void this.service?.cancel(entry.run.id, 'MAX_TURNS'); return; }
       if (message.event === 'steer_delivered') {
         const value = z.object({ request_key: z.string() }).parse(message.payload); entry.steerAcks.get(value.request_key)?.resolve(); entry.steerAcks.delete(value.request_key);
-      } else if (['compaction_start','compaction_end','agent_settled'].includes(message.event)) this.store.transaction(() => this.store.event(entry.run.id, message.event, {}));
+      } else if (['compaction_start','compaction_end','agent_settled'].includes(message.event)) this.service!.recordEvent(entry.run.id, message.event, {});
     } else {
       if (entry.closing || !['running','waiting_input'].includes(this.store.getRun(entry.run.id)?.state ?? '')) fail('RUN_NOT_ACTIVE');
       if (message.tool === 'contact_main') {
@@ -129,7 +129,7 @@ export class Supervisor implements Runtime {
           entry.questionCalls.set(question.id, message.callId);
           if (question.state === 'answered') this.post(entry, { kind: 'tool_result', callId: message.callId, result: { content: [{ type: 'text', text: question.answer }], details: {} } });
         } else {
-          this.store.transaction(() => this.store.event(entry.run.id, request.kind, { message: redact(request.message), evidence: request.evidence ?? [] }, 'contact:' + message.callId));
+          this.service!.recordEvent(entry.run.id, request.kind, { message: redact(request.message), evidence: (request.evidence ?? []).map(item => ({ ...item, detail: redact(item.detail), ...(item.path ? { path: redact(item.path) } : {}) })) }, 'contact:' + message.callId);
           this.post(entry, { kind: 'tool_result', callId: message.callId, result: { content: [{ type: 'text', text: 'Recorded for the main agent.' }], details: {} } });
         }
         return;

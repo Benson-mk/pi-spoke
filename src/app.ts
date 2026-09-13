@@ -20,7 +20,6 @@ export async function createApplication(config: OperatorConfig, configPath: stri
     const runtime = new Supervisor(scoped, store, root);
     const service = new Service(store, runtime, async input => {
       const policy = await resolvePolicy(config, input, configPath, root);
-      if (input.suggested_skills.length) fail('SKILL_NOT_FOUND', 'Skill admission is not implemented yet');
       return { ...policy, resources: await admitResources(scoped, input, policy, models) };
     }, config.limits.max_active_runs);
     runtime.attach(service); service.recoverStartup();

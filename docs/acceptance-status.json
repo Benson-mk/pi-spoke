@@ -42,49 +42,126 @@
       "scenario": "Same accepted spawn request repeated",
       "required": "Same session/run; one launch",
       "status": "NOT RUN",
-      "source": "docs/IMPLEMENTATION_PLAN.md"
+      "source": "docs/IMPLEMENTATION_PLAN.md",
+      "evidence": [
+        {
+          "phase": "P1",
+          "result": "PASS",
+          "scope": "core slice; full public contract and release reruns pending",
+          "tests": [
+            "tests/unit/policy.test.ts",
+            "tests/integration/service.test.ts"
+          ]
+        }
+      ]
     },
     {
       "id": "A07",
       "scenario": "Same key with different input",
       "required": "Idempotency conflict; no launch",
       "status": "NOT RUN",
-      "source": "docs/IMPLEMENTATION_PLAN.md"
+      "source": "docs/IMPLEMENTATION_PLAN.md",
+      "evidence": [
+        {
+          "phase": "P1",
+          "result": "PASS",
+          "scope": "core slice; full public contract and release reruns pending",
+          "tests": [
+            "tests/unit/policy.test.ts",
+            "tests/integration/service.test.ts"
+          ]
+        }
+      ]
     },
     {
       "id": "A08",
       "scenario": "Two continuations race on one session",
       "required": "Only one admitted; other receives current state/stale conflict",
       "status": "NOT RUN",
-      "source": "docs/IMPLEMENTATION_PLAN.md"
+      "source": "docs/IMPLEMENTATION_PLAN.md",
+      "evidence": [
+        {
+          "phase": "P1",
+          "result": "PASS",
+          "scope": "core slice; full public contract and release reruns pending",
+          "tests": [
+            "tests/unit/policy.test.ts",
+            "tests/integration/service.test.ts"
+          ]
+        }
+      ]
     },
     {
       "id": "A09",
       "scenario": "Host observes an active run repeatedly",
       "required": "No new turn, skill read, or model call",
       "status": "NOT RUN",
-      "source": "docs/IMPLEMENTATION_PLAN.md"
+      "source": "docs/IMPLEMENTATION_PLAN.md",
+      "evidence": [
+        {
+          "phase": "P1",
+          "result": "PASS",
+          "scope": "core slice; full public contract and release reruns pending",
+          "tests": [
+            "tests/unit/policy.test.ts",
+            "tests/integration/service.test.ts"
+          ]
+        }
+      ]
     },
     {
       "id": "A10",
       "scenario": "Observe wait expires",
       "required": "Worker remains active; timeout is explicit",
       "status": "NOT RUN",
-      "source": "docs/IMPLEMENTATION_PLAN.md"
+      "source": "docs/IMPLEMENTATION_PLAN.md",
+      "evidence": [
+        {
+          "phase": "P1",
+          "result": "PASS",
+          "scope": "core slice; full public contract and release reruns pending",
+          "tests": [
+            "tests/unit/policy.test.ts",
+            "tests/integration/service.test.ts"
+          ]
+        }
+      ]
     },
     {
       "id": "A11",
       "scenario": "Worker asks a question",
       "required": "Visible pending question; exact reply unblocks the original tool call",
       "status": "NOT RUN",
-      "source": "docs/IMPLEMENTATION_PLAN.md"
+      "source": "docs/IMPLEMENTATION_PLAN.md",
+      "evidence": [
+        {
+          "phase": "P1",
+          "result": "PASS",
+          "scope": "core slice; full public contract and release reruns pending",
+          "tests": [
+            "tests/unit/policy.test.ts",
+            "tests/integration/service.test.ts"
+          ]
+        }
+      ]
     },
     {
       "id": "A12",
       "scenario": "Steer sent while worker is blocked on a question",
       "required": "Explicit instruction to use reply; no deadlock hidden as delivery",
       "status": "NOT RUN",
-      "source": "docs/IMPLEMENTATION_PLAN.md"
+      "source": "docs/IMPLEMENTATION_PLAN.md",
+      "evidence": [
+        {
+          "phase": "P1",
+          "result": "PASS",
+          "scope": "core slice; full public contract and release reruns pending",
+          "tests": [
+            "tests/unit/policy.test.ts",
+            "tests/integration/service.test.ts"
+          ]
+        }
+      ]
     },
     {
       "id": "A13",
@@ -105,7 +182,18 @@
       "scenario": "Cancel during provider call, shell, or question",
       "required": "Prompt/tool waits terminate; managed processes cleaned; status honest",
       "status": "NOT RUN",
-      "source": "docs/IMPLEMENTATION_PLAN.md"
+      "source": "docs/IMPLEMENTATION_PLAN.md",
+      "evidence": [
+        {
+          "phase": "P1",
+          "result": "PASS",
+          "scope": "core slice; full public contract and release reruns pending",
+          "tests": [
+            "tests/unit/policy.test.ts",
+            "tests/integration/service.test.ts"
+          ]
+        }
+      ]
     },
     {
       "id": "A16",
@@ -119,21 +207,54 @@
       "scenario": "Supervisor dies after acceptance",
       "required": "Restart does not replay; original receipt remains queryable",
       "status": "NOT RUN",
-      "source": "docs/IMPLEMENTATION_PLAN.md"
+      "source": "docs/IMPLEMENTATION_PLAN.md",
+      "evidence": [
+        {
+          "phase": "P1",
+          "result": "PASS",
+          "scope": "core slice; full public contract and release reruns pending",
+          "tests": [
+            "tests/unit/policy.test.ts",
+            "tests/integration/service.test.ts"
+          ]
+        }
+      ]
     },
     {
       "id": "A18",
       "scenario": "Safe persisted session continued after restart",
       "required": "Same conversation from validated checkpoint, new run ID",
       "status": "NOT RUN",
-      "source": "docs/IMPLEMENTATION_PLAN.md"
+      "source": "docs/IMPLEMENTATION_PLAN.md",
+      "evidence": [
+        {
+          "phase": "P1",
+          "result": "PASS",
+          "scope": "core slice; full public contract and release reruns pending",
+          "tests": [
+            "tests/unit/policy.test.ts",
+            "tests/integration/service.test.ts"
+          ]
+        }
+      ]
     },
     {
       "id": "A19",
       "scenario": "Corrupt/unsafe partial session",
       "required": "No fabricated tool result or blind replay; clear recovery limitation",
       "status": "NOT RUN",
-      "source": "docs/IMPLEMENTATION_PLAN.md"
+      "source": "docs/IMPLEMENTATION_PLAN.md",
+      "evidence": [
+        {
+          "phase": "P1",
+          "result": "PASS",
+          "scope": "core slice; full public contract and release reruns pending",
+          "tests": [
+            "tests/unit/policy.test.ts",
+            "tests/integration/service.test.ts"
+          ]
+        }
+      ]
     },
     {
       "id": "A20",
@@ -161,21 +282,54 @@
       "scenario": "Duplicate worker event or reply",
       "required": "No duplicate question, message, or side effect from re-delivery",
       "status": "NOT RUN",
-      "source": "docs/IMPLEMENTATION_PLAN.md"
+      "source": "docs/IMPLEMENTATION_PLAN.md",
+      "evidence": [
+        {
+          "phase": "P1",
+          "result": "PASS",
+          "scope": "core slice; full public contract and release reruns pending",
+          "tests": [
+            "tests/unit/policy.test.ts",
+            "tests/integration/service.test.ts"
+          ]
+        }
+      ]
     },
     {
       "id": "A24",
       "scenario": "Long output, Unicode, and event pagination",
       "required": "Explicit truncation and lossless valid UTF-8 pagination",
       "status": "NOT RUN",
-      "source": "docs/IMPLEMENTATION_PLAN.md"
+      "source": "docs/IMPLEMENTATION_PLAN.md",
+      "evidence": [
+        {
+          "phase": "P1",
+          "result": "PASS",
+          "scope": "core slice; full public contract and release reruns pending",
+          "tests": [
+            "tests/unit/policy.test.ts",
+            "tests/integration/service.test.ts"
+          ]
+        }
+      ]
     },
     {
       "id": "A25",
       "scenario": "Cleanup/GC followed by reuse of an old request key",
       "required": "Tombstone prevents accidental new work",
       "status": "NOT RUN",
-      "source": "docs/IMPLEMENTATION_PLAN.md"
+      "source": "docs/IMPLEMENTATION_PLAN.md",
+      "evidence": [
+        {
+          "phase": "P1",
+          "result": "PASS",
+          "scope": "core slice; full public contract and release reruns pending",
+          "tests": [
+            "tests/unit/policy.test.ts",
+            "tests/integration/service.test.ts"
+          ]
+        }
+      ]
     },
     {
       "id": "A26",
@@ -196,7 +350,18 @@
       "scenario": "Active-run cap reached",
       "required": "Explicit admission failure; no hidden queue or unbounded process creation",
       "status": "NOT RUN",
-      "source": "docs/IMPLEMENTATION_PLAN.md"
+      "source": "docs/IMPLEMENTATION_PLAN.md",
+      "evidence": [
+        {
+          "phase": "P1",
+          "result": "PASS",
+          "scope": "core slice; full public contract and release reruns pending",
+          "tests": [
+            "tests/unit/policy.test.ts",
+            "tests/integration/service.test.ts"
+          ]
+        }
+      ]
     },
     {
       "id": "A29",
@@ -217,21 +382,54 @@
       "scenario": "Default operator config; request `bash`, `edit`, or `write`",
       "required": "Explicit tool rejection before inference; no helper launched; no authority inherited from other config fields",
       "status": "NOT RUN",
-      "source": "docs/SAFETY_TESTS.md"
+      "source": "docs/SAFETY_TESTS.md",
+      "evidence": [
+        {
+          "phase": "P1",
+          "result": "PASS",
+          "scope": "core slice; full public contract and release reruns pending",
+          "tests": [
+            "tests/unit/policy.test.ts",
+            "tests/integration/service.test.ts"
+          ]
+        }
+      ]
     },
     {
       "id": "S02",
       "scenario": "Operator allows editing; spawn omits file-write roots",
       "required": "`WRITE_SCOPE_REQUIRED`; adding the tool alone does not authorize the workspace",
       "status": "NOT RUN",
-      "source": "docs/SAFETY_TESTS.md"
+      "source": "docs/SAFETY_TESTS.md",
+      "evidence": [
+        {
+          "phase": "P1",
+          "result": "PASS",
+          "scope": "core slice; full public contract and release reruns pending",
+          "tests": [
+            "tests/unit/policy.test.ts",
+            "tests/integration/service.test.ts"
+          ]
+        }
+      ]
     },
     {
       "id": "S03",
       "scenario": "Request a root partly or wholly outside the operator ceiling",
       "required": "Whole request rejected; no silent intersection, clamping, widening, or fallback",
       "status": "NOT RUN",
-      "source": "docs/SAFETY_TESTS.md"
+      "source": "docs/SAFETY_TESTS.md",
+      "evidence": [
+        {
+          "phase": "P1",
+          "result": "PASS",
+          "scope": "core slice; full public contract and release reruns pending",
+          "tests": [
+            "tests/unit/policy.test.ts",
+            "tests/integration/service.test.ts"
+          ]
+        }
+      ]
     },
     {
       "id": "S04",
@@ -336,7 +534,18 @@
       "scenario": "Traversal, sibling-prefix confusion, trailing slash, Unicode names, and macOS canonical aliases",
       "required": "Correct roots used; no string-prefix escape; valid in-root paths continue to work",
       "status": "NOT RUN",
-      "source": "docs/SAFETY_TESTS.md"
+      "source": "docs/SAFETY_TESTS.md",
+      "evidence": [
+        {
+          "phase": "P1",
+          "result": "PASS",
+          "scope": "core slice; full public contract and release reruns pending",
+          "tests": [
+            "tests/unit/policy.test.ts",
+            "tests/integration/service.test.ts"
+          ]
+        }
+      ]
     },
     {
       "id": "S19",
@@ -420,14 +629,36 @@
       "scenario": "Invalid policy, path alias, or operator revocation on continuation",
       "required": "`POLICY_CHANGED` or specific permission/sandbox error; no inherited stale authority and no new grant from a reply/steer",
       "status": "NOT RUN",
-      "source": "docs/SAFETY_TESTS.md"
+      "source": "docs/SAFETY_TESTS.md",
+      "evidence": [
+        {
+          "phase": "P1",
+          "result": "PASS",
+          "scope": "core slice; full public contract and release reruns pending",
+          "tests": [
+            "tests/unit/policy.test.ts",
+            "tests/integration/service.test.ts"
+          ]
+        }
+      ]
     },
     {
       "id": "S31",
       "scenario": "File/shell operation denied, then retried via main reply or auto-retry machinery",
       "required": "Existing grant remains unchanged; no automatic retry outside the sandbox or policy escalation",
       "status": "NOT RUN",
-      "source": "docs/SAFETY_TESTS.md"
+      "source": "docs/SAFETY_TESTS.md",
+      "evidence": [
+        {
+          "phase": "P1",
+          "result": "PASS",
+          "scope": "core slice; full public contract and release reruns pending",
+          "tests": [
+            "tests/unit/policy.test.ts",
+            "tests/integration/service.test.ts"
+          ]
+        }
+      ]
     },
     {
       "id": "S32",
@@ -441,7 +672,18 @@
       "scenario": "Crash after invocation acceptance or file mutation but before acknowledgment",
       "required": "Invocation receipt survives; unknown side effect is not replayed; safe continuation requires policy and cleanup revalidation",
       "status": "NOT RUN",
-      "source": "docs/SAFETY_TESTS.md"
+      "source": "docs/SAFETY_TESTS.md",
+      "evidence": [
+        {
+          "phase": "P1",
+          "result": "PASS",
+          "scope": "core slice; full public contract and release reruns pending",
+          "tests": [
+            "tests/unit/policy.test.ts",
+            "tests/integration/service.test.ts"
+          ]
+        }
+      ]
     },
     {
       "id": "S34",
@@ -462,7 +704,18 @@
       "scenario": "Version-1 permissive config or unsafe fallback/network/weaker flags in version 2",
       "required": "Explicit migration/validation error; primary shipped example is enforced read-only and cannot authorize shell by omission",
       "status": "NOT RUN",
-      "source": "docs/SAFETY_TESTS.md"
+      "source": "docs/SAFETY_TESTS.md",
+      "evidence": [
+        {
+          "phase": "P1",
+          "result": "PASS",
+          "scope": "core slice; full public contract and release reruns pending",
+          "tests": [
+            "tests/unit/policy.test.ts",
+            "tests/integration/service.test.ts"
+          ]
+        }
+      ]
     }
   ]
 }

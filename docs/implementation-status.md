@@ -6,8 +6,8 @@ Release readiness: **NOT READY**. No platform is currently claimed supported.
 | Milestone | Status | Evidence / next gate |
 |---|---|---|
 | P0 public APIs and OS enforcement | PASS (macOS compatibility slice) | Exact lock; real Pi public APIs; six real OS probes and typed helper integration |
-| P1 durable core and permissions | IN PROGRESS | Building strict authority resolution and durable state next |
-| P2 supervised execution | NOT RUN | Depends on P0/P1 |
+| P1 durable core and permissions | PASS (core slice) | Strict schemas, authority resolver, SQLite receipts/state and deterministic lifecycle/fault tests |
+| P2 supervised execution | IN PROGRESS | Connect the durable service to supervised real Pi workers and guarded launchers |
 | P3 skills and communication | NOT RUN | Depends on P2 |
 | P4 MCP and operations | NOT RUN | Depends on P3 |
 | P5 release gates | NOT RUN | All acceptance, host, platform, live and performance evidence required |
@@ -33,3 +33,19 @@ Linux, live providers, vision, and manual Codex acceptance are NOT RUN.
 
 Commits: `432e630` establishes the pinned compatibility probes. All 66 full
 acceptance cases are carried in [acceptance-status.json](acceptance-status.json).
+
+`a7abdac` completes the macOS P0 compatibility slice. P1 verification:
+typecheck/build, 2 unit tests and 12 integration tests passed. The real SIGKILL
+fixture preserves receipt and uncertain invocation state without replay; clean
+reopen supports explicit continuation. Fault injection covers acceptance,
+terminal artifact and persistent database failures. Tests also cover concurrent
+continuation, capacity, duplicate requests/questions/replies, uncertain delivery,
+policy revocation, cancellation races, UTF-8 output and retained request keys.
+Initial SQLite schema is version 1; newer schemas are refused read-only before
+changing database settings. There is no deployed older schema to migrate.
+
+P1 interfaces intentionally use a controlled runtime. Native checkpoint
+validation, actual process cancellation, resource/attachment admission, run
+deadlines and the full executable sandbox adapter are P2 responsibilities.
+Public MCP acceptance is rerun at P4/P5. Project shell-write roots currently
+fail with `SANDBOX_POLICY_UNSUPPORTED`; no broad-write mode is silently enabled.

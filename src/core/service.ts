@@ -4,7 +4,7 @@ import { readFile } from 'node:fs/promises';
 import { spawnSchema, sendSchema, type SpawnInput, type SendInput } from '../contracts.js';
 import type { ResolvedPolicy } from '../security/policy.js';
 import type { Store } from '../store/database.js';
-import type { Session, Run, Receipt, Command, Checkpoint, CleanupStatus, RunState, Question } from './types.js';
+import type { Session, Run, Receipt, Command, Checkpoint, CleanupStatus, RunState, Question, RunMetrics } from './types.js';
 import { terminalStates } from './types.js';
 import { assertTransition } from './state-machine.js';
 import { digest } from './idempotency.js';
@@ -12,7 +12,7 @@ import { fail, SpokeError } from './errors.js';
 
 export interface Runtime {
   setup(session: Session, run: Run): Promise<{ piSession: { id: string; path: string }; effective: unknown }>;
-  begin(runId: string): Promise<{ output: string; checkpoint: Checkpoint; cleanup: 'confirmed' | 'unconfirmed' }>;
+  begin(runId: string): Promise<{ output: string; checkpoint: Checkpoint; cleanup: 'confirmed' | 'unconfirmed'; metrics?: RunMetrics }>;
   send(runId: string, input: Exclude<SendInput, { kind: 'continue' }>): Promise<void>;
   cancel(runId: string): Promise<'confirmed' | 'unconfirmed'>;
 }
@@ -100,7 +100,7 @@ export class Service {
         catch { fail('STATE_WRITE_FAILED', 'Terminal output could not be durably stored'); }
         this.store.transaction(() => {
           this.store.putSession({ ...this.session(run.sessionId), checkpoint: result.checkpoint, updated: Date.now() });
-          this.transition(this.run(runId), result.cleanup === 'confirmed' ? 'completed' : 'interrupted', { outputPath, cleanup: result.cleanup,
+          this.transition(this.run(runId), result.cleanup === 'confirmed' ? 'completed' : 'interrupted', { outputPath, cleanup: result.cleanup, ...(result.metrics ? { metrics: result.metrics } : {}),
             reason: result.cleanup === 'confirmed' ? null : 'CLEANUP_UNCONFIRMED' });
         });
       } catch (error) {
@@ -129,7 +129,13 @@ export class Service {
       const nextInput = { ...session.input, suggested_skills: input.suggested_skills ?? session.input.suggested_skills,
         attachments: input.attachments, limits: input.limits };
       let policy: ResolvedPolicy;
-      try { policy = await this.prepare(nextInput); } catch { fail('POLICY_CHANGED'); }
+      try { policy = await this.prepare(nextInput); } catch (error) {
+        if (error instanceof SpokeError) {
+          if (error.code === 'SKILL_NOT_FOUND' && input.suggested_skills === undefined && session.policy.resources?.skills.length) fail('RESOURCE_CHANGED');
+          if (['UNSUPPORTED_INPUT','RESOURCE_CHANGED','SKILL_NOT_FOUND','SKILL_NAME_COLLISION','MODEL_UNAVAILABLE','UNSUPPORTED_THINKING'].includes(error.code)) throw error;
+        }
+        fail('POLICY_CHANGED');
+      }
       if (policy.policy_hash !== session.policy.policy_hash) fail('POLICY_CHANGED');
       if (session.policy.resources && policy.resources) {
         if (digest(policy.resources.context) !== digest(session.policy.resources.context)) fail('RESOURCE_CHANGED');

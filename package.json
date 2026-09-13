@@ -12,7 +12,8 @@
     "test:contract": "npm run build && vitest run tests/contract",
     "test:integration": "npm run build && vitest run tests/integration",
     "test:sandbox": "npm run build && vitest run tests/sandbox",
-    "test:live": "node scripts/live-gate.mjs",
+    "test:live": "npm run build && node scripts/live-gate.mjs",
+    "release:check": "node scripts/check-release.mjs",
     "verify": "npm run typecheck && npm test && npm run test:contract && npm run test:integration && npm run test:sandbox && npm run build"
   },
   "dependencies": {

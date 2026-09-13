@@ -67,3 +67,58 @@ Manual host gate (NOT RUN): discover all six tools in Codex, choose model and
 permissions explicitly, spawn while doing independent host work, observe,
 question/reply, steer, continue and cancel. Verify a task can remain entirely
 with the main agent. No package publication or release is authorized.
+
+## Remaining explicit release checks
+
+`npm run release:check` reads the complete A01–A30/S01–S36 ledger and exits
+nonzero while required gates remain. `npm run verify` intentionally excludes
+live inference and host-consent flows. The separately recorded disposable-volume
+check is `node scripts/volume-canary.mjs docs/evidence/volume-macos.json`; it
+creates one 16 MiB image, confirms its mount identity, tests real disk exhaustion,
+and detaches/removes it. It never formats an existing device.
+
+The noninteractive Apple Events fixture is
+`node scripts/apple-events-canary.mjs docs/evidence/apple-events-macos.json`.
+It compiled and ran a finite non-UI receiver, but macOS returned `-1744`
+(`errAEEventWouldRequireUserConsent`) for its positive control. This is a blocked
+check, not successful containment. An operator who explicitly chooses to perform
+the host interaction can run:
+
+```sh
+PI_SPOKE_APPLE_EVENTS_ALLOW_PROMPT=1 node scripts/apple-events-canary.mjs docs/evidence/apple-events-macos.json
+```
+
+That opt-in permits a consent prompt targeting only the newly created test
+receiver. It then tests sandbox denial, rechecks the positive control, waits for
+the finite receiver to exit, and removes the fixture. The default path never
+requests consent or alters privacy settings. This interactive variant has not
+been run by the implementation agent.
+
+For live verification, keep credentials in an operator-owned Pi auth file and
+model definitions in the usual models file. Create a separate selection JSON:
+
+```json
+{
+  "models": [
+    { "provider": "first-configured-provider", "id": "explicit-model-id" },
+    { "provider": "second-configured-provider", "id": "explicit-model-id" }
+  ],
+  "vision": { "provider": "configured-provider", "id": "explicit-vision-model-id" }
+}
+```
+
+Then explicitly enable the three live calls:
+
+```sh
+PI_SPOKE_LIVE=1 \
+PI_SPOKE_LIVE_CONFIG=/absolute/operator-config.json \
+PI_SPOKE_LIVE_SELECTION=/absolute/live-selection.json \
+npm run test:live
+```
+
+The runner uses disposable state/workspace, no execution tools, two distinct
+provider integrations, and one PNG attachment. It never prints provider response
+content or credentials, never retries uncertain work, and does not run from
+`verify`. Model quota/entitlement and any provider-side billing remain external.
+The live runner's opt-in path is unrun until these inputs are supplied; its
+disabled gate has been checked separately.

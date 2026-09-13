@@ -1,0 +1,25 @@
+{
+  "release_ready": false,
+  "remaining": [
+    {
+      "id": "S26",
+      "status": "BLOCKED",
+      "remaining": "Direct Apple Events outside-sandbox positive control returned macOS -1744 (user consent required). Run the explicitly interactive disposable receiver fixture in docs/operations.md, or an already-authorized isolated host fixture. Unix sockets and Launch Services denial passed."
+    },
+    {
+      "id": "manual-codex",
+      "status": "BLOCKED",
+      "remaining": "Run the manual discovery/spawn/independent-work/observe/question/reply/steer/continue/cancel checklist in docs/operations.md with an operator-configured host."
+    },
+    {
+      "id": "live-two-providers-and-vision",
+      "status": "BLOCKED",
+      "remaining": "Provide operator-owned auth/model config and explicit model selection, then run the opt-in instructions in docs/operations.md."
+    },
+    {
+      "id": "platform-release-qualification",
+      "status": "BLOCKED",
+      "remaining": "No platform release support claimed until direct Apple Events, live-provider and manual host gates pass. Linux is NOT RUN and is explicitly rejected by this adapter."
+    }
+  ]
+}

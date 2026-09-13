@@ -92,7 +92,9 @@ export class Store {
     if (!/^run_[a-f0-9-]+$/.test(runId)) fail('INTERNAL_ERROR');
     const path = join(this.directory, 'runs', runId, name); mkdirSync(dirname(path), { recursive: true, mode: 0o700 });
     const temporary = path + '.' + randomUUID(); const fd = openSync(temporary, 'wx', 0o600);
-    try { writeFileSync(fd, contents); fsyncSync(fd); } finally { closeSync(fd); }
+    try { writeFileSync(fd, contents); fsyncSync(fd); }
+    catch (error) { try { unlinkSync(temporary); } catch {} throw error; }
+    finally { closeSync(fd); }
     renameSync(temporary, path); const dir = openSync(dirname(path), 'r'); try { fsyncSync(dir); } finally { closeSync(dir); }
     return path;
   }

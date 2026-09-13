@@ -1,0 +1,6 @@
+{
+  "status": "BLOCKED",
+  "scope": "direct Apple Events",
+  "reason": "Outside-sandbox positive control failed with interaction and user-consent prompts disabled; no privacy setting was changed",
+  "code": "-1744"
+}

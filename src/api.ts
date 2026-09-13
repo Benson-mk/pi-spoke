@@ -31,7 +31,8 @@ function page<T>(items: T[], cursor: string | undefined, limit: number, scope: u
   return { protocol_version: 1, items: selected, next_cursor: next < items.length ? Buffer.from(JSON.stringify({ revision, offset: next })).toString('base64url') : null };
 }
 function runSummary(run: Run) {
-  return { run_id: run.id, session_id: run.sessionId, state: run.state, reason: run.reason, cleanup_status: run.cleanup,
+  const reason = run.reason === null ? null : preview(redact(run.reason), 512);
+  return { run_id: run.id, session_id: run.sessionId, state: run.state, reason: reason?.text ?? null, reason_truncated: reason?.truncated ?? false, cleanup_status: run.cleanup,
     created_at: run.created, updated_at: run.updated, elapsed_ms: (terminalStates.includes(run.state) ? run.updated : Date.now()) - run.created };
 }
 function resourceSummary(value: unknown): unknown {
@@ -59,7 +60,8 @@ export class Api {
     if (input.kind === 'models') {
       items = this.app.models.getModels().filter(model => !this.app.config.allowed_models || this.app.config.allowed_models.some(allowed => allowed.provider === model.provider && allowed.id === model.id))
         .map(model => ({ provider: model.provider, id: model.id, name: model.name, input_modalities: model.input, context_window: model.contextWindow,
-          max_output_tokens: model.maxTokens, reasoning: model.reasoning, supported_thinking: null,
+          max_output_tokens: model.maxTokens, reasoning: model.reasoning, supported_thinking: model.reasoning ? (model.thinkingLevelMap ? Object.entries(model.thinkingLevelMap).filter(([, value]) => value !== null).map(([level]) => level) : null) : ['off'],
+          thinking_metadata_complete: !model.reasoning,
           authentication_configured: this.app.models.hasConfiguredAuth(model.provider), live_verified: false,
           metadata_provenance: 'Pi ModelRuntime: built-in/cache/operator configuration', catalog_timestamp: this.catalogTimestamp }))
         .sort((a,b) => (a.provider + ':' + a.id).localeCompare(b.provider + ':' + b.id));
@@ -105,6 +107,7 @@ export class Api {
     const questions = observed.questions.map(question => ({ question_id: question.id, ...preview(redact(question.message), 768) }));
     const effective = preview(JSON.stringify(resourceSummary(observed.run.effective)), 3072);
     return { protocol_version: 1, ...runSummary(observed.run), timed_out: observed.timed_out, durability_error: observed.durability_error,
+      usage: observed.run.metrics ?? null, tool_count: this.app.store.invocations(input.run_id).length,
       effective_config: effective.truncated ? { preview: effective.text, truncated: true } : JSON.parse(effective.text),
       questions: questions.slice(0,4), questions_truncated: questions.length > 4, events,
       next_after_seq: events.length ? (events.at(-1) as { seq: number }).seq : input.after_seq,

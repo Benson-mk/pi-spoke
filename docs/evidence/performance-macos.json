@@ -1,0 +1,70 @@
+{
+  "timestamp": "2026-09-13T19:33:28.062Z",
+  "platform": "darwin",
+  "architecture": "arm64",
+  "os": "24.6.0",
+  "node": "v24.15.0",
+  "provider": "local HTTP fake; no live inference",
+  "mcp_startup_ms": 616,
+  "runs": [
+    {
+      "task": "plain",
+      "elapsed_ms": 514,
+      "readiness_ms": 406,
+      "tool_ms": null
+    },
+    {
+      "task": "READ source",
+      "elapsed_ms": 1179,
+      "readiness_ms": 584,
+      "tool_ms": 529
+    },
+    {
+      "task": "READ source",
+      "elapsed_ms": 1030,
+      "readiness_ms": 504,
+      "tool_ms": 462
+    },
+    {
+      "task": "concurrent 2",
+      "elapsed_ms": 467,
+      "readiness_ms": 373,
+      "tool_ms": null
+    },
+    {
+      "task": "concurrent 0",
+      "elapsed_ms": 467,
+      "readiness_ms": 372,
+      "tool_ms": null
+    },
+    {
+      "task": "concurrent 1",
+      "elapsed_ms": 467,
+      "readiness_ms": 372,
+      "tool_ms": null
+    },
+    {
+      "task": "LARGE output",
+      "elapsed_ms": 404,
+      "readiness_ms": 336,
+      "tool_ms": null
+    }
+  ],
+  "three_concurrent_ms": 467,
+  "peak_sampled_supervisor_rss_kib": 425376,
+  "output": {
+    "bytes": 40000,
+    "pages": 3,
+    "elapsed_ms": 1
+  },
+  "cancellation": {
+    "elapsed_ms": 37,
+    "state": "cancelled"
+  },
+  "preflight_cache": "none; repeated run rechecks binary/compiler hashes and real canaries",
+  "limitations": [
+    "single local sample set",
+    "RSS is sampled supervisor only, not aggregate process-tree peak",
+    "fake provider latency is not live model latency"
+  ]
+}

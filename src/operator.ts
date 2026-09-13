@@ -23,6 +23,7 @@ export async function doctor(config: OperatorConfig, instance: string) {
     live_provider_tests: 'NOT RUN; explicitly opt-in' };
 }
 export async function sandboxCheck(runtimeRoot: string) {
+  if (platform() !== 'darwin') fail('SANDBOX_UNAVAILABLE', 'This adapter requires the qualified macOS host');
   const root = await mkdtemp('/private/tmp/ps-doctor-'), cwd = join(root, 'workspace'); await mkdir(cwd);
   const config: OperatorConfig = { version: 2, state_dir: join(root, 'state'), scratch_dir: join(root, 'scratch'), workspace_roots: [cwd], allowed_tools: ['read'],
     permissions: { file_write_roots: [], shell_write_roots: [] }, skill_roots: [], project_skills: false,
@@ -40,8 +41,8 @@ export async function refreshModels(config: OperatorConfig, instance: string) {
   try {
     const models = await ModelRuntime.create({ authPath: config.pi.auth_path, modelsPath: config.pi.models_path ?? null,
       modelsStorePath: join(store.directory, 'model-cache.json'), allowModelNetwork: true, refreshOnCreate: false });
-    const result = await models.refresh();
-    return { status: models.getError() ? 'STALE' : 'REFRESHED', model_count: models.getModels().length, live_verified: false, refresh_completed: !!result };
+    const result = await models.refresh({ allowNetwork: true, force: true });
+    return { status: models.getError() || result.errors.size || result.aborted ? 'STALE' : 'REFRESHED', model_count: models.getModels().length, live_verified: false, refresh_completed: !result.aborted && result.errors.size === 0 };
   } finally { store.close(); }
 }
 export async function recover(config: OperatorConfig, instance: string, runId: string) {

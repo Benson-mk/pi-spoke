@@ -25,6 +25,7 @@ test('P2: image admission snapshots, model rejection and changed project context
     expect(provider.requests).toHaveLength(0);
     const receipt = await app.service.spawn(request); await writeFile(image, 'changed after admission'); await app.service.drain();
     expect(app.store.getRun(receipt.run_id)).toMatchObject({ state: 'completed', reason: null });
+    expect(JSON.stringify(app.store.getRun(receipt.run_id)?.effective)).not.toContain('ORIGINAL_CONTEXT');
     const saved = app.store.getSession(receipt.session_id)!;
     expect(await readFile(saved.policy.resources!.images[0]!.path)).toEqual(original);
     expect(JSON.stringify(provider.requests)).toContain('image_url'); expect(JSON.stringify(provider.requests)).toContain('ORIGINAL_CONTEXT');

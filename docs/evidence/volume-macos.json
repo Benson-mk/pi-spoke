@@ -1,0 +1,10 @@
+{
+  "status": "PASS",
+  "scope": "actual disposable 16 MiB HFS+ volume; mounted-topology rejection and real ENOSPC artifact failure",
+  "mount_guard": "UNSAFE_PATH",
+  "filesystem_error": "ENOSPC",
+  "run_state": "failed",
+  "reason": "STATE_WRITE_FAILED",
+  "receipt_retained": true,
+  "cleanup": "detached and removed"
+}

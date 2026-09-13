@@ -1,92 +1,68 @@
 # Implementation status
 
-Target: 0.1.0; specification 1.1; issue #1. Branch: `codex/implement-v0.1.0`.
-Release readiness: **NOT READY**. No platform is currently claimed supported.
+Target: 0.1.0; accepted specification 1.1; GitHub issue #1.
+Branch: `codex/implement-v0.1.0`. **Release readiness: NOT READY.**
+No platform release support is claimed. The active goal is awaiting the remaining
+external gates; it has not been declared complete.
 
-| Milestone | Status | Evidence / next gate |
+| Milestone | Outcome | Commit / evidence |
 |---|---|---|
-| P0 public APIs and OS enforcement | PASS (macOS compatibility slice) | Exact lock; real Pi public APIs; six real OS probes and typed helper integration |
-| P1 durable core and permissions | PASS (core slice) | Strict schemas, authority resolver, SQLite receipts/state and deterministic lifecycle/fault tests |
-| P2 supervised execution | PARTIAL; cleanup gate unresolved | Real supervised Pi, guarded file tools, images, checkpoints and provider cancellation pass; arbitrary shell descendant cleanup is unconfirmed |
-| P3 skills and communication | PASS (local execution slice) | Public Pi metadata/selection, immutable sandboxed skill reads, durable contact/reply contracts |
-| P4 MCP and operations | PASS (automated slice); manual host NOT RUN | Compiled stdio client exercises all six tools; operator CLI and examples present |
-| P5 release gates | IN PROGRESS | Complete coverage audit, faults, compatibility invalidation and performance; host/live gates remain external |
+| P0 dependencies, public APIs, OS enforcement | PASS, local compatibility slice | `432e630`, `a7abdac`; pinned lock/binaries, real Pi and SRT probes |
+| P1 durable lifecycle and permissions | PASS, local acceptance | `041297f`; SQLite receipts, independent grants, recovery/fault tests |
+| P2 supervised execution | PASS, local candidate contract | `491926e`; real workers, guarded tools, images, native checkpoints, honest cleanup |
+| P3 optional skills and communication | PASS, local acceptance | `1ca3d9f`; metadata-first optional skills, immutable resources, durable contact/reply |
+| P4 MCP and operators | PASS automated; manual host BLOCKED | `1a485cb`; all six tools through compiled MCP; CLI/config/Codex examples |
+| P5 hardening and release qualification | Local verification PASS; external gates BLOCKED | Final hardening revision; evidence below |
 
-Initial inspection: clean tree at `af700dd`; documentation only. Read issue #1,
-its `ready-for-agent` label and empty comments; no contract discrepancy.
-The active goal is recorded in the task. No push, publication, or release is authorized.
+Initial inspection found a clean documentation-only tree at `af700dd`. The issue
+body, labels and comments were read under the repository tracker conventions.
+Accepted architecture and normative acceptance matrices remain intact. Existing
+work was preserved. No push, package publication, release, or host configuration
+installation was performed.
 
-Verification outcomes use PASS, FAIL, BLOCKED, and NOT RUN separately. A partial
-case is not a pass. Every A01–A30 and S01–S36 remains required; the normative
-matrices are preserved unchanged. Live tests remain opt-in and cannot pass by
-being skipped. Missing suites fail `verify` until implemented.
+## Verification
 
-P0 evidence: [compatibility](compatibility.md), [OS canaries](evidence/p0-macos-sandbox.txt).
-Passed slices: typecheck/build, real Pi save/reopen/contact/resources/literal
-steering, source/scratch separation, nested/missing protection, socket denial,
-concurrent policy isolation, hostile wrapper quoting, fixed sandboxed writes
-and native exact edits, invalid launcher inputs, and every built-in tool callback
-replacement. A pre-existing writable hard link bypasses path protection; the
-topology guard rejects it. Full supervised production integration and descendant
-cleanup remain P2 work. P0 passing is not a full safety-case/release pass.
-Linux, live providers, vision, and manual Codex acceptance are NOT RUN.
+- Clean offline `npm ci --ignore-scripts` passed from the unchanged exact lock:
+  [install transcript](evidence/clean-install.txt).
+- `npm run verify`: strict typecheck/build, **5 unit, 8 Pi contract,
+  15 integration, and 15 actual-sandbox tests pass**:
+  [verification transcript](evidence/verification-macos.txt).
+- Tests use the real Pi SDK with local fake providers and actual macOS SRT.
+  Compiled MCP tests exercise six tools, duplicates/conflicts, questions/replies,
+  byte/cursor pagination, continuation, shell cancellation, actual supervisor
+  SIGKILL, sibling survival and native restart recovery without replay.
+- Real 16 MiB disposable HFS+ volume: mounted topology rejected; actual
+  `ENOSPC` produces `failed / STATE_WRITE_FAILED` with the receipt retained.
+  The image was detached and removed: [volume evidence](evidence/volume-macos.json).
+- Public shell/file paths cover source deletion/overwrite, independent editing,
+  metadata, symlink/hard-link and ancestor races, outside/tmp paths, environment,
+  IPv4/IPv6, Unix sockets, controlled DNS/UDP and Launch Services. A modified
+  compiler copy fails before launch. See [compatibility](compatibility.md).
+- [Measured performance](evidence/performance-macos.json): 616 ms MCP startup,
+  462–529 ms sandboxed reads, 37 ms provider cancellation; sampled supervisor
+  RSS 425,376 KiB. Single fake-provider sample; not aggregate worker-tree memory.
+- Disabled live gate exits nonzero without loading live credentials or making
+  inference calls: [gate evidence](evidence/live-gate-disabled.txt).
+- The [acceptance ledger](acceptance-status.json) retains all 66 cases:
+  **65 PASS locally, S26 BLOCKED**. `npm run release:check` intentionally fails
+  while required external gates remain. Partial evidence is not a release pass.
 
-Commits: `432e630` establishes the pinned compatibility probes. All 66 full
-acceptance cases are carried in [acceptance-status.json](acceptance-status.json).
+## Remaining external actions
 
-`a7abdac` completes the macOS P0 compatibility slice. P1 verification:
-typecheck/build, 2 unit tests and 12 integration tests passed. The real SIGKILL
-fixture preserves receipt and uncertain invocation state without replay; clean
-reopen supports explicit continuation. Fault injection covers acceptance,
-terminal artifact and persistent database failures. Tests also cover concurrent
-continuation, capacity, duplicate requests/questions/replies, uncertain delivery,
-policy revocation, cancellation races, UTF-8 output and retained request keys.
-Initial SQLite schema is version 1; newer schemas are refused read-only before
-changing database settings. There is no deployed older schema to migrate.
+1. **Direct Apple Events (S26):** the noninteractive positive control returned
+   macOS `-1744` (user consent required). Its receiver exited and fixture was
+   removed. [Evidence](evidence/apple-events-macos.json). An operator can run the
+   explicitly interactive disposable-receiver command in [operations](operations.md).
+   No Automation privacy settings were changed by this implementation.
+2. **Manual Codex host exercise:** configure the supplied TOML and complete the
+   discovery/spawn/independent-work/observe/question/reply/steer/continue/cancel
+   checklist. The host remains free not to delegate.
+3. **Two live providers plus vision:** supply operator-owned configuration and
+   explicit model selections, then run the opt-in live runner. No live tests
+   have run. Linux is NOT RUN and rejected by this adapter; support is not claimed.
 
-P1 interfaces intentionally use a controlled runtime. Native checkpoint
-validation, actual process cancellation, resource/attachment admission, run
-deadlines and the full executable sandbox adapter are P2 responsibilities.
-Public MCP acceptance is rerun at P4/P5. Project shell-write roots currently
-fail with `SANDBOX_POLICY_UNSUPPORTED`; no broad-write mode is silently enabled.
-
-P2 evidence (Node 24.15.0, local fake HTTP provider, actual macOS SRT): strict
-typecheck/build; 2 unit, 12 integration, 5 Pi contract and 8 sandbox tests pass.
-The complete `verify` sequence passed before adding checkpoint-corruption and
-detached-descendant cases; both expanded suites passed afterward. Tests cover
-all seven overridden Pi tool definitions, supervised fixed read/search/write/edit,
-accepted image snapshots, unsupported modality/model rejection before inference,
-context-change rejection, native confirmed-prefix recovery, corrupt/incomplete
-checkpoint rejection, and cancelling a slow provider request while a sibling
-completes. No live provider was called.
-
-S32 characterization is **not a full acceptance pass**: a finite detached child
-outlives its wrapper and remains sandbox-contained. Every arbitrary-shell run
-therefore retains `cleanup=unconfirmed` and ends interrupted, with output and a
-safe checkpoint preserved where available. Continuation is refused until cleanup
-is independently attested. No wrapper-exit heuristic claims descendant cleanup.
-Full parent-death/double-fork qualification remains unresolved; independent
-skills, communication, transport and operator work can proceed against the
-verified no-tool and fixed-file-helper paths. Release remains NOT READY.
-
-`491926e` records the P2 supervised implementation. P3 verification passes strict
-typecheck, 7 Pi contract tests and 9 actual-sandbox tests. Selected skill IDs and
-hashes use Pi's public metadata loader; disabled skills and name collisions are
-rejected. Two suggested skills can remain unread; explicit continuation can clear
-the shortlist. External selected skill reads succeed and writes fail; changed
-selected content rejects continuation. A real worker persists note/question/
-improvement messages, waits without extra inference, accepts one correlated
-literal reply, and does not apply the proposed improvement. Public MCP coverage
-and broader release fault tests remain P4/P5 work.
-
-`1ca3d9f` records P3. P4 full `npm run verify` passes on the qualified local Node
-runtime: 2 unit, 7 Pi contract, 14 integration and 9 actual-sandbox tests. The
-compiled MCP SDK subprocess test covers all six tools, strict argument errors,
-receipt duplicates/conflicts, correlated question replies, non-mutating observe,
-explicit continuation, sessions, repeated cancel and UTF-8 byte pagination.
-Operator tests verify plain doctor does not create state, incompatible flags fail,
-live recorded PIDs block recovery, and GC retains request-key tombstones.
-Three version-2 configurations and a Codex TOML example are documented in
-[operations](operations.md). Codex configuration fields were checked against the
-official documentation; **manual Codex interaction remains NOT RUN**. Nothing
-has been installed into the host or pushed/published.
+Arbitrary shell descendants can outlive their wrapper while staying sandboxed.
+Such runs end interrupted with `cleanup=unconfirmed`; saved output and safe
+checkpoints do not imply cleanup. Explicit operator attestation is required for
+continuation. Project shell-write scopes remain explicitly unsupported.
+There is no unrestricted fallback, rollback, or automatic replay of uncertain work.

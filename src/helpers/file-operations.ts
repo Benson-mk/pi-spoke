@@ -45,7 +45,9 @@ export async function readText(authority: FileAuthority, requested: string): Pro
   try {
     const stat = await file.stat();
     if (!stat.isFile() || stat.size > 1024 * 1024) throw new Error('LIMIT_EXCEEDED');
-    return await file.readFile('utf8');
+    const bytes = await file.readFile();
+    if (bytes.includes(0)) throw new Error('UNSUPPORTED_INPUT: binary file');
+    try { return new TextDecoder('utf-8', { fatal: true }).decode(bytes); } catch { throw new Error('UNSUPPORTED_INPUT: file is not UTF-8 text'); }
   } finally { await file.close(); }
 }
 

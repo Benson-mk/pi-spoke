@@ -8,8 +8,10 @@ import { z } from 'zod';
 import type { OperatorConfig } from '../config.js';
 import type { ResolvedPolicy } from '../security/policy.js';
 import { checkWritableTopology } from '../security/topology.js';
-import { fail } from '../core/errors.js';
+import { fail, SpokeError } from '../core/errors.js';
 import { within } from '../helpers/file-operations.js';
+import { verifyQualification } from './qualification.js';
+import { ripgrepSha256 } from './qualification-pins.js';
 
 const quote = (text: string) => "'" + text.replaceAll("'", "'\\''") + "'";
 const here = dirname(fileURLToPath(import.meta.url));
@@ -30,6 +32,7 @@ export class Sandbox {
   private async invoke(runId: string, policy: ResolvedPolicy, scratch: string, command: string, stdin: string, writer: boolean, timeout_ms = 15000): Promise<Outcome> {
     if (this.cancelled.has(runId)) fail('RUN_NOT_ACTIVE');
     if (platform() !== 'darwin') fail('SANDBOX_UNAVAILABLE', 'This build has only qualified the macOS adapter baseline');
+    await verifyQualification(this.runtimeRoot).catch(error => { if (error instanceof SpokeError) throw error; fail('SANDBOX_UNAVAILABLE', 'Compatibility identity cannot be verified'); });
     await checkWritableTopology(scratch);
     for (const identity of [policy.cwdIdentity, policy.workspaceIdentity, ...policy.rootIdentities]) {
       const current = await lstat(identity.path);
@@ -64,7 +67,8 @@ export class Sandbox {
     } finally { clearTimeout(timer); active.delete(child); if (!active.size) this.active.delete(runId); }
   }
   async preflight(runId: string, policy: ResolvedPolicy, scratch: string) {
-    const binary = await realpath('/usr/bin/sandbox-exec');
+    if (platform() !== 'darwin') fail('SANDBOX_UNAVAILABLE', 'This build has only qualified the macOS adapter baseline');
+    const binary = await realpath('/usr/bin/sandbox-exec').catch(() => fail('SANDBOX_UNAVAILABLE', 'Seatbelt executable is unavailable'));
     const sha256 = createHash('sha256').update(await readFile(binary)).digest('hex');
     const fixture = await mkdtemp(join(this.config.scratch_dir, 'probe-')), outside = join(fixture, 'outside');
     await writeFile(outside, 'outside canary', { mode: 0o600 });
@@ -96,6 +100,7 @@ export class Sandbox {
     if (name === 'grep' || name === 'find') {
       for (const candidate of ['/opt/homebrew/bin/rg', '/usr/bin/rg']) { try { rg = await realpath(candidate); break; } catch {} }
       if (!rg) fail('SANDBOX_UNAVAILABLE', 'A trusted ripgrep installation is required');
+      if (createHash('sha256').update(await readFile(rg)).digest('hex') !== ripgrepSha256) fail('SANDBOX_UNAVAILABLE', 'Ripgrep compatibility identity changed; requalification is required');
     }
     const payload = { ...input, operation, authority, ...(rg ? { rg } : {}) };
     const result = await this.invoke(runId, policy, scratch, `${quote(process.execPath)} ${quote(join(this.runtimeRoot, 'dist/helpers/file-tool-entry.js'))}`, JSON.stringify(payload), name === 'edit' || name === 'write');

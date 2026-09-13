@@ -45,5 +45,10 @@ test('P4: compiled stdio six-tool public contract, durable receipts, questions, 
     const next = (await call('send', { kind: 'continue', request_key: 'next', session_id: spawned.session_id, expected_last_run_id: spawned.run_id, message: 'continue' })).structuredContent;
     await vi.waitFor(async () => expect((await call('observe', { run_id: next.run_id })).structuredContent.state).toBe('completed'));
     expect((await call('cancel', { run_id: next.run_id })).structuredContent.state).toBe('completed');
+    const catalogPage = (await call('catalog', { kind: 'models', limit: 1 })).structuredContent;
+    expect(catalogPage.next_cursor).toBeTypeOf('string');
+    const catalogNext = (await call('catalog', { kind: 'models', limit: 1, cursor: catalogPage.next_cursor })).structuredContent;
+    expect(catalogNext.items).not.toEqual(catalogPage.items);
+    expect((await call('catalog', { kind: 'models', query: 'fixture', cursor: catalogPage.next_cursor })).structuredContent.error.code).toBe('INVALID_ARGUMENT');
   } finally { await client.close(); await provider.close(); await rm(root, { recursive: true, force: true }); }
 }, 20000);

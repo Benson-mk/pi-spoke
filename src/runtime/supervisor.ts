@@ -1,5 +1,5 @@
 import { fork, type ChildProcess } from 'node:child_process';
-import { mkdir, readFile } from 'node:fs/promises';
+import { mkdir, readFile, realpath } from 'node:fs/promises';
 import { join, dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { randomUUID, createHash } from 'node:crypto';
@@ -45,12 +45,14 @@ export class Supervisor implements Runtime {
     const entry: Active = { session, run, scratch: null, ready: deferred(), done: deferred(), closing: false, hadShell: false, questionCalls: new Map(), steerAcks: new Map() };
     this.active.set(run.id, entry);
     entry.wall = setTimeout(() => { void this.service?.cancel(run.id, 'WALL_TIME_LIMIT'); }, Math.max(1, session.policy.limits.wall_time_ms - (Date.now() - run.created)));
+    const resources = session.policy.resources ? { context: session.policy.resources.context.map(({ path, hash }) => ({ path, hash })),
+      images: session.policy.resources.images.map(({ source, hash, mimeType }) => ({ source, hash, mimeType })), skills: session.policy.resources.skills } : null;
     let manifest: Record<string, unknown> = { execution_mode: 'no-execution-tools', sandbox_scope: null, backend: null, preflight_id: null, shell_scratch_root: null,
-      tools: session.input.tools, policy_hash: session.policy.policy_hash, file_write_roots: [], shell_write_roots: [], limits: session.policy.limits };
+      tools: session.input.tools, policy_hash: session.policy.policy_hash, file_write_roots: [], shell_write_roots: [], limits: session.policy.limits, resources };
     if (session.input.tools.length) {
       entry.scratch = await this.sandbox.createScratch(run.id);
       const backend = await this.sandbox.preflight(run.id, session.policy, entry.scratch);
-      manifest = { ...session.policy, execution_mode: 'sandboxed-tools', sandbox_scope: 'tool-subprocesses', backend,
+      manifest = { ...session.policy, resources, execution_mode: 'sandboxed-tools', sandbox_scope: 'tool-subprocesses', backend,
         preflight_id: backend.preflight_id, shell_scratch_root: entry.scratch, shell_read_model: 'system-readable-with-explicit-denies' };
     }
     if (entry.closing) fail('RUN_NOT_ACTIVE');
@@ -113,7 +115,7 @@ export class Supervisor implements Runtime {
       if (hash !== message.checkpoint.hash) fail('STATE_CORRUPT');
       if (message.outputPath !== join(this.store.directory, 'runs', entry.run.id, 'worker-output.txt')) fail('STATE_CORRUPT');
       const { bytes, ...checkpoint } = message.checkpoint;
-      entry.result = { output: await readFile(message.outputPath, 'utf8'), checkpoint: { ...checkpoint, ...(bytes === undefined ? {} : { bytes }) }, cleanup: entry.hadShell || entry.uncertainTool ? 'unconfirmed' : 'confirmed' };
+      entry.result = { output: await readFile(message.outputPath, 'utf8'), checkpoint: { ...checkpoint, ...(bytes === undefined ? {} : { bytes }) }, metrics: message.metrics, cleanup: entry.hadShell || entry.uncertainTool ? 'unconfirmed' : 'confirmed' };
     } else if (message.kind === 'error') {
       const code = ['PROVIDER_ERROR','UNSUPPORTED_THINKING','MODEL_CONFIGURATION_MISMATCH','MODEL_UNAVAILABLE','SESSION_NOT_RESUMABLE','LIMIT_EXCEEDED'].includes(message.code) ? message.code : 'WORKER_EXITED';
       const error = new SpokeError(code, redact(message.message)); entry.ready.reject(error); entry.done.reject(error);
@@ -161,7 +163,10 @@ export class Supervisor implements Runtime {
       };
       const args = message.args as { path?: unknown };
       if ((message.tool === 'edit' || message.tool === 'write') && typeof args.path === 'string') {
-        const key = resolve(entry.session.policy.cwd, args.path), prior = this.mutationLocks.get(key) ?? Promise.resolve();
+        const path = resolve(entry.session.policy.cwd, args.path);
+        const canonical = await realpath(path).catch(() => path);
+        const key = process.platform === 'darwin' ? canonical.normalize('NFD').toLowerCase() : canonical;
+        const prior = this.mutationLocks.get(key) ?? Promise.resolve();
         const work = prior.catch(() => {}).then(execute); this.mutationLocks.set(key, work);
         try { await work; } finally { if (this.mutationLocks.get(key) === work) this.mutationLocks.delete(key); }
       } else await execute();

@@ -96,6 +96,7 @@ async function handle(value: unknown) {
       const bytes = await readFile(image.path); if (createHash('sha256').update(bytes).digest('hex') !== image.hash) throw new Error('RESOURCE_CHANGED');
       return { type: 'image' as const, data: bytes.toString('base64'), mimeType: image.mimeType };
     }));
+    const beforeMessages = session!.messages.length;
     await session!.prompt(recoveryNotice + prompt, { expandPromptTemplates: false, images });
     if (stopped) return;
     if (!session!.isIdle) throw new Error('WORKER_NOT_SETTLED');
@@ -104,7 +105,12 @@ async function handle(value: unknown) {
     const output = last.content.filter(part => part.type === 'text').map(part => part.text).join('\n');
     const file = await open(outputPath, 'wx', 0o600); try { await file.writeFile(output); await file.sync(); } finally { await file.close(); }
     const saved = await checkpoint(session!.sessionManager);
-    send({ kind: 'done', outputPath, checkpoint: saved });
+    const turns = session!.messages.slice(beforeMessages).filter(message => message.role === 'assistant');
+    const known = turns.length > 0 && turns.every(message => message.role === 'assistant' && message.usage.totalTokens > 0);
+    const sum = (field: 'input' | 'output' | 'cacheRead' | 'cacheWrite') => known ? turns.reduce((total, message) => total + (message.role === 'assistant' ? message.usage[field] : 0), 0) : null;
+    const cost = turns.reduce((total,message) => total + (message.role === 'assistant' ? message.usage.cost.total : 0), 0);
+    send({ kind: 'done', outputPath, checkpoint: saved, metrics: { input_tokens: sum('input'), output_tokens: sum('output'), cache_read_tokens: sum('cacheRead'), cache_write_tokens: sum('cacheWrite'),
+      estimated_cost_usd: known && cost > 0 ? cost : null } });
     session!.dispose(); clearInterval(watchdog); if (process.connected) process.disconnect();
   }
 }

@@ -54,8 +54,8 @@ try {
     if (!request.rg.startsWith('/') || !(await lstat(request.rg)).isFile()) throw new Error('SANDBOX_UNAVAILABLE');
     const child = spawn(request.rg, argv, { cwd: request.authority.cwd, stdio: ['ignore','pipe','pipe'], shell: false });
     let stdout = '', stderr = '', truncated = false;
-    child.stdout.on('data', bytes => { if (Buffer.byteLength(stdout) < 16000) stdout += bytes; else { truncated = true; child.kill('SIGTERM'); } });
-    child.stderr.on('data', bytes => { if (Buffer.byteLength(stderr) < 4096) stderr += bytes; });
+    child.stdout.on('data', bytes => { const combined = Buffer.concat([Buffer.from(stdout), bytes]); stdout = combined.subarray(0,16000).toString(); if (combined.length > 16000) { truncated = true; child.kill('SIGTERM'); } });
+    child.stderr.on('data', bytes => { stderr = Buffer.concat([Buffer.from(stderr), bytes]).subarray(0,4096).toString(); });
     const code = await new Promise<number | null>((done, reject) => { child.once('error', reject); child.once('close', done); });
     const lines = stdout.split('\n').filter(Boolean), limit = request.limit ?? 100;
     console.log(JSON.stringify({ text: lines.slice(0, limit).join('\n') + ((lines.length > limit || truncated) ? '\n[truncated]' : '') + (stderr ? '\n' + stderr : ''), exit_code: code }));

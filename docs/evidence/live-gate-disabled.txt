@@ -1,0 +1,9 @@
+
+> pi-spoke@0.1.0 test:live
+> npm run build && node scripts/live-gate.mjs
+
+
+> pi-spoke@0.1.0 build
+> tsc -p tsconfig.json
+
+BLOCKED: live inference requires explicit PI_SPOKE_LIVE=1, PI_SPOKE_LIVE_CONFIG and PI_SPOKE_LIVE_SELECTION.

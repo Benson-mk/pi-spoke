@@ -9,7 +9,7 @@
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.tests.json",
     "test": "vitest run tests/unit",
-    "test:contract": "vitest run tests/contract",
+    "test:contract": "npm run build && vitest run tests/contract",
     "test:integration": "npm run build && vitest run tests/integration",
     "test:sandbox": "npm run build && vitest run tests/sandbox",
     "test:live": "node scripts/live-gate.mjs",

@@ -7,7 +7,7 @@ Release readiness: **NOT READY**. No platform is currently claimed supported.
 |---|---|---|
 | P0 public APIs and OS enforcement | PASS (macOS compatibility slice) | Exact lock; real Pi public APIs; six real OS probes and typed helper integration |
 | P1 durable core and permissions | PASS (core slice) | Strict schemas, authority resolver, SQLite receipts/state and deterministic lifecycle/fault tests |
-| P2 supervised execution | IN PROGRESS | Connect the durable service to supervised real Pi workers and guarded launchers |
+| P2 supervised execution | PARTIAL; cleanup gate unresolved | Real supervised Pi, guarded file tools, images, checkpoints and provider cancellation pass; arbitrary shell descendant cleanup is unconfirmed |
 | P3 skills and communication | NOT RUN | Depends on P2 |
 | P4 MCP and operations | NOT RUN | Depends on P3 |
 | P5 release gates | NOT RUN | All acceptance, host, platform, live and performance evidence required |
@@ -49,3 +49,22 @@ validation, actual process cancellation, resource/attachment admission, run
 deadlines and the full executable sandbox adapter are P2 responsibilities.
 Public MCP acceptance is rerun at P4/P5. Project shell-write roots currently
 fail with `SANDBOX_POLICY_UNSUPPORTED`; no broad-write mode is silently enabled.
+
+P2 evidence (Node 24.15.0, local fake HTTP provider, actual macOS SRT): strict
+typecheck/build; 2 unit, 12 integration, 5 Pi contract and 8 sandbox tests pass.
+The complete `verify` sequence passed before adding checkpoint-corruption and
+detached-descendant cases; both expanded suites passed afterward. Tests cover
+all seven overridden Pi tool definitions, supervised fixed read/search/write/edit,
+accepted image snapshots, unsupported modality/model rejection before inference,
+context-change rejection, native confirmed-prefix recovery, corrupt/incomplete
+checkpoint rejection, and cancelling a slow provider request while a sibling
+completes. No live provider was called.
+
+S32 characterization is **not a full acceptance pass**: a finite detached child
+outlives its wrapper and remains sandbox-contained. Every arbitrary-shell run
+therefore retains `cleanup=unconfirmed` and ends interrupted, with output and a
+safe checkpoint preserved where available. Continuation is refused until cleanup
+is independently attested. No wrapper-exit heuristic claims descendant cleanup.
+Full parent-death/double-fork qualification remains unresolved; independent
+skills, communication, transport and operator work can proceed against the
+verified no-tool and fixed-file-helper paths. Release remains NOT READY.

@@ -6,6 +6,7 @@ import { within } from '../helpers/file-operations.js';
 import { fail } from '../core/errors.js';
 import { digest } from '../core/idempotency.js';
 import { checkWritableTopology } from './topology.js';
+import type { ResourceManifest } from '../core/resources.js';
 
 const reserved = ['.git', '.codex', '.agents', '.pi', '.pi-spoke', 'AGENTS.md'];
 async function directory(path: string) {
@@ -40,6 +41,8 @@ export async function resolvePolicy(config: OperatorConfig, input: SpawnInput, c
     ...config.sandbox.additional_read_deny_paths].map(knownPath));
   const protectedWrite = [...protectedRead, runtime, ...await Promise.all(config.skill_roots.map(root => knownPath(root.path))),
     ...await Promise.all(config.sandbox.additional_write_deny_paths.map(knownPath)), ...reserved.map(name => join(workspace.path, name))];
+  // Shell gets one explicit scratch read/write exception at launch; other instances remain private.
+  protectedRead.push(scratch);
   // Resolve worktree pointers as data, without invoking git or repository hooks.
   const git = join(workspace.path, '.git');
   try {
@@ -73,6 +76,6 @@ export async function resolvePolicy(config: OperatorConfig, input: SpawnInput, c
     model: input.model, tools: input.tools, file_write_roots: fileRoots.map(root => root.path), shell_write_roots: shellRoots.map(root => root.path),
     rootIdentities: [...fileRoots, ...shellRoots], protected_read_paths: [...new Set(protectedRead)].sort(),
     protected_write_paths: [...new Set(protectedWrite)].sort(), limits: { wall_time_ms: wall, max_turns: turns }, tool_network: 'none' as const };
-  return { ...policy, policy_hash: digest(policy) };
+  return { ...policy, policy_hash: digest({ ...policy, limits: undefined }) };
 }
-export type ResolvedPolicy = Awaited<ReturnType<typeof resolvePolicy>>;
+export type ResolvedPolicy = Awaited<ReturnType<typeof resolvePolicy>> & { resources?: ResourceManifest };

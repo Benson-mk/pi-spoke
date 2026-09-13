@@ -1,4 +1,4 @@
-/** Disposable P0 compatibility probe. Not an application execution endpoint. */
+/** Isolated sandbox manager: one policy and one subprocess per invocation. */
 import { SandboxManager, getDefaultWritePaths } from '@anthropic-ai/sandbox-runtime';
 import { spawn } from 'node:child_process';
 import { createHash } from 'node:crypto';
@@ -9,6 +9,7 @@ const input = z.strictObject({
   readDeny: z.array(z.string()), readAllow: z.array(z.string()),
   writeAllow: z.array(z.string()), writeDeny: z.array(z.string()),
   stdin: z.string().max(1024 * 1024).optional(),
+  timeout_ms: z.number().int().positive().default(15000),
 });
 let bytes = 0, text = '';
 for await (const chunk of process.stdin) {
@@ -37,15 +38,23 @@ try {
     throw new Error('SANDBOX_POLICY_UNSUPPORTED: P0 wrapper shape has not been validated on this platform');
   }
   const child = spawn(wrapped.argv[0], wrapped.argv.slice(1), {
-    cwd: probe.cwd, shell: false, env: process.env, stdio: ['pipe', 'pipe', 'pipe'],
+    cwd: probe.cwd, shell: false, detached: true,
+    env: { PATH: '/usr/bin:/bin:/usr/sbin:/sbin', HOME: process.env.HOME, TMPDIR: probe.scratch,
+      CLAUDE_CODE_TMPDIR: probe.scratch, LANG: 'C.UTF-8' }, stdio: ['pipe', 'pipe', 'pipe'],
   });
+  process.send?.({ kind: 'launched', pid: child.pid, startedAt: Date.now(), policyHash });
+  const stop = () => { if (child.exitCode === null && child.signalCode === null && child.pid) {
+    try { process.kill(-child.pid, 'SIGKILL'); } catch (error) { if ((error as NodeJS.ErrnoException).code !== 'ESRCH') throw error; }
+  } };
+  process.once('disconnect', stop); process.once('SIGTERM', stop);
   child.stdin.end(probe.stdin ?? '');
   let stdout = '', stderr = '';
-  child.stdout.on('data', b => { stdout += b; if (stdout.length > 65536) child.kill('SIGKILL'); });
-  child.stderr.on('data', b => { stderr += b; if (stderr.length > 65536) child.kill('SIGKILL'); });
-  const timer = setTimeout(() => child.kill('SIGKILL'), 15000);
+  child.stdout.on('data', b => { stdout += b; if (Buffer.byteLength(stdout) > 65536) { stdout = Buffer.from(stdout).subarray(0, 65536).toString(); stop(); } });
+  child.stderr.on('data', b => { stderr += b; if (Buffer.byteLength(stderr) > 65536) { stderr = Buffer.from(stderr).subarray(0, 65536).toString(); stop(); } });
+  const timer = setTimeout(stop, probe.timeout_ms);
   const code = await new Promise<number | null>((resolve, reject) => { child.once('error', reject); child.once('close', resolve); });
   clearTimeout(timer);
+  process.removeListener('disconnect', stop); process.removeListener('SIGTERM', stop);
   console.log(JSON.stringify({ code, stdout, stderr, policyHash, defaultWritePaths: getDefaultWritePaths(),
     wrapper: wrapped.argv[0], launcherPid: process.pid, cleanup: 'wrapper-exited-descendants-unverified' }));
 } catch (error) {
@@ -53,4 +62,5 @@ try {
   process.exitCode = 1;
 } finally {
   await SandboxManager.reset();
+  if (process.connected) process.disconnect();
 }

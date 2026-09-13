@@ -3,6 +3,7 @@ import { randomUUID } from 'node:crypto';
 import { mkdirSync, readFileSync, writeFileSync, unlinkSync, rmdirSync, lstatSync, chmodSync, openSync, fsyncSync, closeSync, renameSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import type { Session, Run, Command, Event, Question, Invocation } from '../core/types.js';
+import type { ImageResource } from '../core/resources.js';
 import { SpokeError, fail } from '../core/errors.js';
 
 const decode = <T>(value: unknown): T => {
@@ -94,6 +95,19 @@ export class Store {
     try { writeFileSync(fd, contents); fsyncSync(fd); } finally { closeSync(fd); }
     renameSync(temporary, path); const dir = openSync(dirname(path), 'r'); try { fsyncSync(dir); } finally { closeSync(dir); }
     return path;
+  }
+  copyInputs(runId: string, images: ImageResource[]): ImageResource[] {
+    if (!/^run_[a-f0-9-]+$/.test(runId)) fail('INTERNAL_ERROR');
+    const copied = new Set<string>();
+    return images.map(image => {
+      if (!/^[a-f0-9]{64}$/.test(image.hash)) fail('STATE_CORRUPT');
+      const dir = join(this.directory, 'runs', runId, 'input'); mkdirSync(dir, { recursive: true, mode: 0o700 });
+      const path = join(dir, image.hash); if (copied.has(image.hash)) return { ...image, path }; copied.add(image.hash);
+      const fd = openSync(path, 'wx', 0o600);
+      try { writeFileSync(fd, readFileSync(image.path)); fsyncSync(fd); } finally { closeSync(fd); }
+      const parent = openSync(dir, 'r'); try { fsyncSync(parent); } finally { closeSync(parent); }
+      return { ...image, path };
+    });
   }
   prune(runId: string): void {
     const run = this.getRun(runId); if (!run || !['completed','failed','cancelled','interrupted'].includes(run.state)) fail('RUN_NOT_ACTIVE');

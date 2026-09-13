@@ -4,7 +4,7 @@ import type { ResolvedPolicy } from '../security/policy.js';
 export type RunState = 'starting' | 'running' | 'waiting_input' | 'stopping' | 'completed' | 'failed' | 'cancelled' | 'interrupted';
 export type CleanupStatus = 'pending' | 'confirmed' | 'unconfirmed' | 'operator_attested';
 export const terminalStates: RunState[] = ['completed', 'failed', 'cancelled', 'interrupted'];
-export type Checkpoint = { path: string; leaf: string; hash: string; safe: true };
+export type Checkpoint = { path: string; leaf: string; hash: string; bytes?: number; safe: true };
 export type Receipt = { protocol_version: 1; session_id: string; run_id: string; state: RunState; receipt: 'accepted'; effective_config: null };
 export type Session = { id: string; input: SpawnInput; policy: ResolvedPolicy; created: number; updated: number;
   lastRunId: string; checkpoint: Checkpoint | null; piSession: { id: string; path: string } | null };

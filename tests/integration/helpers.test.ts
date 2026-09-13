@@ -17,7 +17,7 @@ test('fixed helper validates typed operations, protected paths, aliases and dest
       return { status: result.status, ...JSON.parse(result.stdout) };
     };
     expect(invoke({ operation: 'write', path: 'file', content: 'new' })).toMatchObject({ status: 0, written: true });
-    expect(invoke({ operation: 'read', path: 'file' })).toMatchObject({ text: 'new' });
+    expect(invoke({ operation: 'read', path: 'file' })).toMatchObject({ content: [{ type: 'text', text: 'new' }] });
     expect(invoke({ operation: 'write', path: 'file', content: '' }).status).toBe(0);
     expect(await readFile(join(root, 'file'), 'utf8')).toBe('');
     expect(invoke({ operation: 'write', path: '../outside', content: 'bad' }).error).toBe('PATH_NOT_ALLOWED');

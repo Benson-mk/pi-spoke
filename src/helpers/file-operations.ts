@@ -1,5 +1,5 @@
 import { constants } from 'node:fs';
-import { lstat, realpath, open, rename, unlink } from 'node:fs/promises';
+import { lstat, realpath, open, rename, unlink, mkdir } from 'node:fs/promises';
 import { dirname, isAbsolute, relative, resolve, sep, basename, join } from 'node:path';
 import { randomUUID } from 'node:crypto';
 
@@ -12,7 +12,7 @@ export function within(root: string, path: string): boolean {
 
 export type FileAuthority = { cwd: string; roots: string[]; protectedPaths: string[] };
 
-async function target(authority: FileAuthority, requested: string, mutation: boolean) {
+export async function checkedTarget(authority: FileAuthority, requested: string, mutation: boolean, createParents = false) {
   const path = resolve(authority.cwd, requested);
   const root = authority.roots.find(root => within(root, path));
   if (!root) throw new Error('PATH_NOT_ALLOWED');
@@ -29,14 +29,18 @@ async function target(authority: FileAuthority, requested: string, mutation: boo
       if (stat.isSymbolicLink() || (!stat.isFile() && !stat.isDirectory()) || (mutation && stat.isFile() && stat.nlink !== 1)) throw new Error('UNSAFE_PATH');
       if (index < parts.length - 1 && !stat.isDirectory()) throw new Error('UNSAFE_PATH');
     } catch (error) {
-      if ((error as NodeJS.ErrnoException).code !== 'ENOENT' || index !== parts.length - 1) throw error;
+      if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error;
+      if (index < parts.length - 1) {
+        if (!createParents) throw error;
+        await mkdir(current, { mode: 0o700 });
+      }
     }
   }
   return path;
 }
 
 export async function readText(authority: FileAuthority, requested: string): Promise<string> {
-  const path = await target(authority, requested, false);
+  const path = await checkedTarget(authority, requested, false);
   const file = await open(path, constants.O_RDONLY | constants.O_NOFOLLOW);
   try {
     const stat = await file.stat();
@@ -47,7 +51,7 @@ export async function readText(authority: FileAuthority, requested: string): Pro
 
 /** Complete replacement in an existing authorized parent. No executable input. */
 export async function writeText(authority: FileAuthority, requested: string, content: string, expected?: string): Promise<void> {
-  const path = await target(authority, requested, true);
+  const path = await checkedTarget(authority, requested, true, true);
   if (expected !== undefined && await readText(authority, requested) !== expected) throw new Error('FILE_CHANGED');
   if (Buffer.byteLength(content) > 1024 * 1024) throw new Error('LIMIT_EXCEEDED');
   const parent = dirname(path), parentIdentity = await lstat(parent);
@@ -58,7 +62,7 @@ export async function writeText(authority: FileAuthority, requested: string, con
   const file = await open(temp, constants.O_WRONLY | constants.O_CREAT | constants.O_EXCL | constants.O_NOFOLLOW, before ? before.mode & 0o777 : 0o600);
   try {
     await file.writeFile(content); await file.sync(); await file.close();
-    await target(authority, requested, true);
+    await checkedTarget(authority, requested, true);
     const parentAfter = await lstat(parent);
     if (parentAfter.ino !== parentIdentity.ino || parentAfter.dev !== parentIdentity.dev) throw new Error('FILE_CHANGED');
     let after;

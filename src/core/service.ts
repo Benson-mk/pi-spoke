@@ -12,7 +12,7 @@ import { fail, SpokeError } from './errors.js';
 
 export interface Runtime {
   setup(session: Session, run: Run): Promise<{ piSession: { id: string; path: string }; effective: unknown }>;
-  begin(runId: string): Promise<{ output: string; checkpoint: Checkpoint; cleanup: 'confirmed' }>;
+  begin(runId: string): Promise<{ output: string; checkpoint: Checkpoint; cleanup: 'confirmed' | 'unconfirmed' }>;
   send(runId: string, input: Exclude<SendInput, { kind: 'continue' }>): Promise<void>;
   cancel(runId: string): Promise<'confirmed' | 'unconfirmed'>;
 }
@@ -21,6 +21,7 @@ export class Service {
   private readonly tasks = new Map<string, Promise<void>>();
   private readonly stopping = new Map<string, Promise<Run>>();
   private durabilityError: unknown;
+  private shuttingDown = false;
   constructor(readonly store: Store, private readonly runtime: Runtime,
     private readonly prepare: (input: SpawnInput) => Promise<ResolvedPolicy>, private readonly maxActive = 3) {}
   private run(id: string): Run { const run = this.store.getRun(id); if (!run) fail('INVALID_ARGUMENT', 'Unknown run'); return run; }
@@ -38,11 +39,13 @@ export class Service {
   }
   private notify(id: string) { this.changes.emit(id); }
   async spawn(raw: unknown): Promise<Receipt> {
+    if (this.shuttingDown) fail('RUN_NOT_ACTIVE', 'Supervisor is shutting down');
     if (this.durabilityError) fail('STATE_WRITE_FAILED');
     const parsed = spawnSchema.safeParse(raw); if (!parsed.success) fail('INVALID_ARGUMENT'); const input = parsed.data;
     const previous = this.prior(input.request_key, 'spawn', input); if (previous) return previous;
     const policy = await this.prepare(input);
     const receipt = this.store.transaction(() => {
+      if (this.shuttingDown) fail('RUN_NOT_ACTIVE', 'Supervisor is shutting down');
       const previous = this.prior(input.request_key, 'spawn', input); if (previous) return previous;
       if (this.store.activeCount() >= this.maxActive) fail('CAPACITY_EXCEEDED');
       const now = Date.now(), sessionId = 'ses_' + randomUUID(), runId = 'run_' + randomUUID();
@@ -55,6 +58,8 @@ export class Service {
   }
   private reserve(session: Session, runId: string, input: SpawnInput | SendInput, operation: string): Receipt {
     const now = Date.now();
+    if (session.policy.resources) session = { ...session, policy: { ...session.policy, resources: { ...session.policy.resources,
+      images: this.store.copyInputs(runId, session.policy.resources.images) } } };
     const run: Run = { id: runId, sessionId: session.id, input, state: 'starting', created: now, updated: now, effective: null, reason: null, cleanup: 'pending', outputPath: null };
     this.store.putRun(run);
     this.store.putSession({ ...session, lastRunId: runId, updated: now });
@@ -83,13 +88,14 @@ export class Service {
         this.notify(runId);
         const result = await this.runtime.begin(runId);
         if (this.run(runId).state !== 'running') return;
-        if (!result.checkpoint.safe || result.cleanup !== 'confirmed') fail('STATE_CORRUPT', 'Unconfirmed terminal evidence');
+        if (!result.checkpoint.safe) fail('STATE_CORRUPT', 'Unsafe terminal checkpoint');
         let outputPath: string;
         try { outputPath = this.store.writeArtifact(runId, 'output.txt', result.output); }
         catch { fail('STATE_WRITE_FAILED', 'Terminal output could not be durably stored'); }
         this.store.transaction(() => {
           this.store.putSession({ ...this.session(run.sessionId), checkpoint: result.checkpoint, updated: Date.now() });
-          this.transition(this.run(runId), 'completed', { outputPath, cleanup: 'confirmed' });
+          this.transition(this.run(runId), result.cleanup === 'confirmed' ? 'completed' : 'interrupted', { outputPath, cleanup: result.cleanup,
+            reason: result.cleanup === 'confirmed' ? null : 'CLEANUP_UNCONFIRMED' });
         });
       } catch (error) {
         const current = this.run(runId);
@@ -105,6 +111,7 @@ export class Service {
     this.tasks.set(runId, task); void task.catch(error => { this.durabilityError = error; });
   }
   async send(raw: unknown): Promise<Receipt> {
+    if (this.shuttingDown) fail('RUN_NOT_ACTIVE', 'Supervisor is shutting down');
     if (this.durabilityError) fail('STATE_WRITE_FAILED');
     const parsed = sendSchema.safeParse(raw); if (!parsed.success) fail('INVALID_ARGUMENT'); const input = parsed.data;
     const previous = this.prior(input.request_key, input.kind, input); if (previous) return previous;
@@ -113,17 +120,23 @@ export class Service {
       if (!terminalStates.includes(last.state)) fail('SESSION_BUSY');
       if (session.lastRunId !== input.expected_last_run_id) fail('SESSION_STALE');
       if (!session.checkpoint?.safe || !['confirmed','operator_attested'].includes(last.cleanup)) fail('SESSION_NOT_RESUMABLE');
-      const nextInput = { ...session.input, suggested_skills: input.suggested_skills ?? session.input.suggested_skills };
+      const nextInput = { ...session.input, suggested_skills: input.suggested_skills ?? session.input.suggested_skills,
+        attachments: input.attachments, limits: input.limits };
       let policy: ResolvedPolicy;
       try { policy = await this.prepare(nextInput); } catch { fail('POLICY_CHANGED'); }
       if (policy.policy_hash !== session.policy.policy_hash) fail('POLICY_CHANGED');
+      if (session.policy.resources && policy.resources) {
+        if (digest(policy.resources.context) !== digest(session.policy.resources.context)) fail('RESOURCE_CHANGED');
+        if (input.suggested_skills === undefined && digest(policy.resources.skills) !== digest(session.policy.resources.skills)) fail('RESOURCE_CHANGED');
+      }
       const receipt = this.store.transaction(() => {
+        if (this.shuttingDown) fail('RUN_NOT_ACTIVE', 'Supervisor is shutting down');
         const previous = this.prior(input.request_key, input.kind, input); if (previous) return previous;
         const current = this.session(session.id);
         if (current.lastRunId !== input.expected_last_run_id) fail('SESSION_STALE');
         if (!terminalStates.includes(this.run(current.lastRunId).state)) fail('SESSION_BUSY');
         if (this.store.activeCount() >= this.maxActive) fail('CAPACITY_EXCEEDED');
-        return this.reserve({ ...current, input: nextInput }, 'run_' + randomUUID(), input, 'continue');
+        return this.reserve({ ...current, input: nextInput, policy }, 'run_' + randomUUID(), input, 'continue');
       });
       this.dispatch(receipt.run_id); return receipt;
     }
@@ -218,4 +231,9 @@ export class Service {
     return { text: bytes.subarray(offset, end).toString('utf8'), next_offset_bytes: end, truncated: end < bytes.length };
   }
   async drain(): Promise<void> { await Promise.all([...this.tasks.values(), ...this.stopping.values()]); if (this.durabilityError) throw this.durabilityError; }
+  async shutdown(): Promise<void> {
+    this.shuttingDown = true;
+    await Promise.all(this.store.runs().filter(run => !terminalStates.includes(run.state)).map(run => this.cancel(run.id, 'HOST_DISCONNECTED')));
+    await this.drain();
+  }
 }

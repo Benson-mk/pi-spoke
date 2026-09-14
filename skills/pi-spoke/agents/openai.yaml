@@ -1,0 +1,4 @@
+interface:
+  display_name: "Pi Spoke"
+  short_description: "Delegate and coordinate Pi workers through MCP"
+  default_prompt: "Use $pi-spoke to delegate a scoped task and verify the worker result."

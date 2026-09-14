@@ -45,3 +45,5 @@ platform-specific evidence. No package or release has been published.
 use `-- --platform linux` or `-- --platform darwin` to select another ledger.
 
 Start with the [documentation index](docs/README.md) for project status, specifications, architectural decisions, and acceptance requirements. The [glossary](CONTEXT.md) defines shared terminology; [agent guidance](AGENTS.md) directs repository work.
+
+- [Optional main-agent skill](skills/pi-spoke/SKILL.md): Install or link the `skills/pi-spoke` folder into your host's skill directory to teach an agent the delegation workflow. It uses an already configured pi-spoke MCP connection and leaves delegation optional.

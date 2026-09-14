@@ -18,7 +18,8 @@ Initial inspection found a clean documentation-only tree at `af700dd`. The issue
 body, labels and comments were read under the repository tracker conventions.
 Accepted architecture and normative acceptance matrices remain intact. Existing
 work was preserved. No push, package publication, release, or host configuration
-installation was performed.
+installation was performed during the initial implementation. A verification-only
+host configuration was subsequently added at the operator’s request.
 
 ## Verification
 
@@ -53,19 +54,21 @@ installation was performed.
   [Transcript](evidence/live-harness-regression.txt). Strict typecheck and script
   syntax checks also pass; the default live gate still rejects without opt-in.
 - The [acceptance ledger](acceptance-status.json) retains all 66 cases:
-  **65 PASS locally, S26 BLOCKED**. `npm run release:check` intentionally fails
+  **66 PASS on the tested macOS host, including operator-run S26**. `npm run release:check` intentionally fails
   while required external gates remain. Partial evidence is not a release pass.
 
 ## Remaining external actions
 
-1. **Direct Apple Events (S26):** the noninteractive positive control returned
-   macOS `-1744` (user consent required). Its receiver exited and fixture was
-   removed. [Evidence](evidence/apple-events-macos.json). An operator can run the
-   explicitly interactive disposable-receiver command in [operations](operations.md).
-   No Automation privacy settings were changed by this implementation.
-2. **Manual Codex host exercise:** configure the supplied TOML and complete the
-   discovery/spawn/independent-work/observe/question/reply/steer/continue/cancel
-   checklist. The host remains free not to delegate.
+1. **Direct Apple Events (S26): PASS.** The operator ran the explicitly
+   interactive fixture. Positive controls succeeded; sandbox returned `-600`;
+   the runner verifies receiver exit and removes fixtures before writing its
+   result. [Evidence](evidence/apple-events-macos-interactive.json). The earlier
+   noninteractive consent block remains recorded as history.
+2. **Manual Codex host exercise: READY TO RUN.** `pi_spoke` was registered in
+   the host configuration with a disposable read-only workspace and Spark.
+   Actual sandbox and direct six-tool discovery preflight passed. Host execution
+   remains unverified until Codex reloads the configuration and runs the
+   [host checklist](codex-host-verification.md).
 3. **Two live provider integrations:** Gemini read/continuation/vision and Spark
    (`iFiy/spark-x2.5-4b`) read/continuation passed, all with confirmed cleanup.
    [Spark evidence](evidence/live-spark-macos.json). Spark is a working alternative

@@ -63,10 +63,11 @@ explicitly, use self-contained tasks, retain request keys across retries, observ
 without adding turns, and answer the exact pending question ID. Observation
 never acknowledges questions. MCP approvals do not enlarge session permissions.
 
-Manual host gate (NOT RUN): discover all six tools in Codex, choose model and
+Manual host gate (configured; host execution pending): discover all six tools in Codex, choose model and
 permissions explicitly, spawn while doing independent host work, observe,
 question/reply, steer, continue and cancel. Verify a task can remain entirely
-with the main agent. No package publication or release is authorized.
+with the main agent. Follow the [prepared host checklist](codex-host-verification.md).
+No package publication or release is authorized.
 
 ## Remaining explicit release checks
 
@@ -91,8 +92,9 @@ PI_SPOKE_APPLE_EVENTS_ALLOW_PROMPT=1 node scripts/apple-events-canary.mjs docs/e
 That opt-in permits a consent prompt targeting only the newly created test
 receiver. It then tests sandbox denial, rechecks the positive control, waits for
 the finite receiver to exit, and removes the fixture. The default path never
-requests consent or alters privacy settings. This interactive variant has not
-been run by the implementation agent.
+requests consent or alters privacy settings. The operator subsequently ran this interactive variant successfully: positive
+code `0`, sandbox code `-600`, with cleanup checked before output.
+[Recorded result](evidence/apple-events-macos-interactive.json).
 
 For live verification, keep credentials in an operator-owned Pi auth file and
 model definitions in the usual models file. Create a separate selection JSON:

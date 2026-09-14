@@ -1,0 +1,35 @@
+{
+  "status": "PREFLIGHT_PASS_HOST_PENDING",
+  "date": "2026-09-14",
+  "server": "pi_spoke",
+  "instance": "codex-host-verification",
+  "configuration": "/private/tmp/ps-host-i53_cygw/config.json",
+  "workspace": "/private/tmp/ps-host-i53_cygw/project",
+  "model": {
+    "provider": "operator-gateway",
+    "id": "iFiy/spark-x2.5-4b"
+  },
+  "tools": [
+    "spoke_catalog",
+    "spoke_spawn",
+    "spoke_observe",
+    "spoke_send",
+    "spoke_cancel",
+    "spoke_sessions"
+  ],
+  "discovery_scope": "direct MCP setup connection, not Codex tool execution",
+  "sandbox_preflight": {
+    "status": "PASS",
+    "scope": "disposable baseline preflight; not full release qualification",
+    "name": "srt",
+    "version": "0.0.76",
+    "platform": "darwin",
+    "architecture": "arm64",
+    "os": "24.6.0",
+    "enforcement": "seatbelt",
+    "binary": "/usr/bin/sandbox-exec",
+    "binary_sha256": "cbd6ab1e5a359afe9ed93b33dc65b5cd7544d364ed284542878505671ae7f83e",
+    "preflight_id": "ce11057e3e6b651cefce0f59d8ea56902ef9e83878cd39070bce04bbd6e1460b"
+  },
+  "next_action": "Restart Codex and run docs/codex-host-verification.md with host-registered tools"
+}

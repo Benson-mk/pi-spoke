@@ -1,0 +1,7 @@
+{
+  "status": "PASS",
+  "scope": "direct Apple Events to a disposable finite non-UI receiver",
+  "positive_code": "0",
+  "sandbox_code": "-600",
+  "policy_hash": "5b5296796a1ebd9e6fdc1cbea97633027be8ca58de104f5dc618141b0634e888"
+}

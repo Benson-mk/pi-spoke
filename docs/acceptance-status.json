@@ -1151,7 +1151,7 @@
       "id": "S26",
       "scenario": "Unix sockets, Docker/agent socket fixtures, and macOS Apple Events/Launch Services",
       "required": "No access to privileged host services; required missing controls cause failure before execution, not warning-only downgrade",
-      "status": "BLOCKED",
+      "status": "PASS",
       "source": "docs/SAFETY_TESTS.md",
       "evidence": [
         {
@@ -1171,9 +1171,17 @@
             "docs/evidence/apple-events-macos.json"
           ],
           "scope": "macOS returned -1744 with kAEDoNotPromptForUserConsent; fixture process exited and files removed"
+        },
+        {
+          "phase": "P5",
+          "result": "PASS",
+          "scope": "Operator-run interactive disposable fixture; positive and post-denial controls succeeded, sandbox code -600, finite receiver exit and cleanup required before result was written. Prior noninteractive block retained as history.",
+          "tests": [
+            "scripts/apple-events-canary.mjs",
+            "docs/evidence/apple-events-macos-interactive.json"
+          ]
         }
-      ],
-      "remaining": "Direct Apple Events outside-sandbox positive control returned macOS -1744 (user consent required). Run the explicitly interactive disposable receiver fixture in docs/operations.md, or an already-authorized isolated host fixture. Unix sockets and Launch Services denial passed."
+      ]
     },
     {
       "id": "S27",
@@ -1402,7 +1410,8 @@
     {
       "id": "manual-codex",
       "status": "BLOCKED",
-      "remaining": "Run the manual discovery/spawn/independent-work/observe/question/reply/steer/continue/cancel checklist in docs/operations.md with an operator-configured host."
+      "remaining": "Restart Codex, return to this task, and execute docs/codex-host-verification.md through the registered pi_spoke tools.",
+      "evidence": "Host pi_spoke configuration added; actual sandbox and direct six-tool MCP discovery preflight PASS. Codex-host tool execution pending reload."
     },
     {
       "id": "live-two-providers-and-vision",
@@ -1418,7 +1427,7 @@
     {
       "id": "platform-release-qualification",
       "status": "BLOCKED",
-      "remaining": "No platform release support claimed until direct Apple Events, live-provider and manual host gates pass. Linux is NOT RUN and is explicitly rejected by this adapter."
+      "remaining": "Direct Apple Events passed through operator-run fixture. Distinct live-provider integration and actual Codex host checks remain open. Linux is NOT RUN and is rejected by this adapter."
     }
   ]
 }

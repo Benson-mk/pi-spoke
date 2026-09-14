@@ -1409,9 +1409,8 @@
     },
     {
       "id": "manual-codex",
-      "status": "BLOCKED",
-      "remaining": "Restart Codex, return to this task, and execute docs/codex-host-verification.md through the registered pi_spoke tools.",
-      "evidence": "Host pi_spoke configuration added; actual sandbox and direct six-tool MCP discovery preflight PASS. Codex-host tool execution pending reload."
+      "status": "PASS",
+      "evidence": "docs/evidence/codex-host-verification.json: actual Codex tool discovery, explicit model/read grants, independent work, correlated question/reply, sandboxed read, native continuation, active steering, sessions and cancellation with confirmed cleanup. Catalog auth discrepancy fixed with compiled-MCP regression."
     },
     {
       "id": "live-two-providers-and-vision",
@@ -1427,7 +1426,7 @@
     {
       "id": "platform-release-qualification",
       "status": "BLOCKED",
-      "remaining": "Direct Apple Events passed through operator-run fixture. Distinct live-provider integration and actual Codex host checks remain open. Linux is NOT RUN and is rejected by this adapter."
+      "remaining": "Apple Events and actual Codex host checks passed. Two distinct live provider integrations remain unverified; passing Spark and Gemini checks use one gateway integration. Linux is NOT RUN and rejected."
     }
   ]
 }

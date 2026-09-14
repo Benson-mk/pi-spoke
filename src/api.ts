@@ -58,11 +58,15 @@ export class Api {
     const scope = input.cwd ? await this.workspace(input.cwd) : null;
     let items: unknown[];
     if (input.kind === 'models') {
+      // Startup deliberately skips Pi's availability refresh. Its empty auth
+      // snapshot cannot establish that authentication is unconfigured. Listing
+      // credential metadata performs no key-command execution or token refresh.
+      const storedProviders = new Set((await this.app.models.listCredentials()).map(item => item.providerId));
       items = this.app.models.getModels().filter(model => !this.app.config.allowed_models || this.app.config.allowed_models.some(allowed => allowed.provider === model.provider && allowed.id === model.id))
         .map(model => ({ provider: model.provider, id: model.id, name: model.name, input_modalities: model.input, context_window: model.contextWindow,
           max_output_tokens: model.maxTokens, reasoning: model.reasoning, supported_thinking: model.reasoning ? (model.thinkingLevelMap ? Object.entries(model.thinkingLevelMap).filter(([, value]) => value !== null).map(([level]) => level) : null) : ['off'],
           thinking_metadata_complete: !model.reasoning,
-          authentication_configured: this.app.models.hasConfiguredAuth(model.provider), live_verified: false,
+          authentication_configured: storedProviders.has(model.provider) || this.app.models.hasConfiguredAuth(model.provider) ? true : null, live_verified: false,
           metadata_provenance: 'Pi ModelRuntime: built-in/cache/operator configuration', catalog_timestamp: this.catalogTimestamp }))
         .sort((a,b) => (a.provider + ':' + a.id).localeCompare(b.provider + ':' + b.id));
     } else if (input.kind === 'skills') {

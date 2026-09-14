@@ -2,12 +2,6 @@
   "release_ready": false,
   "remaining": [
     {
-      "id": "manual-codex",
-      "status": "BLOCKED",
-      "remaining": "Restart Codex, return to this task, and execute docs/codex-host-verification.md through the registered pi_spoke tools.",
-      "evidence": "Host pi_spoke configuration added; actual sandbox and direct six-tool MCP discovery preflight PASS. Codex-host tool execution pending reload."
-    },
-    {
       "id": "live-two-providers-and-vision",
       "status": "BLOCKED",
       "remaining": "Spark is a verified tool-capable alternative to Llama. Both passing models use one OpenAI-compatible gateway configuration; two distinct provider integrations remain unverified.",
@@ -16,7 +10,7 @@
     {
       "id": "platform-release-qualification",
       "status": "BLOCKED",
-      "remaining": "Direct Apple Events passed through operator-run fixture. Distinct live-provider integration and actual Codex host checks remain open. Linux is NOT RUN and is rejected by this adapter."
+      "remaining": "Apple Events and actual Codex host checks passed. Two distinct live provider integrations remain unverified; passing Spark and Gemini checks use one gateway integration. Linux is NOT RUN and rejected."
     }
   ]
 }

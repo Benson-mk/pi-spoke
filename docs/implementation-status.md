@@ -11,7 +11,7 @@ external gates; it has not been declared complete.
 | P1 durable lifecycle and permissions | PASS, local acceptance | `041297f`; SQLite receipts, independent grants, recovery/fault tests |
 | P2 supervised execution | PASS, local candidate contract | `491926e`; real workers, guarded tools, images, native checkpoints, honest cleanup |
 | P3 optional skills and communication | PASS, local acceptance | `1ca3d9f`; metadata-first optional skills, immutable resources, durable contact/reply |
-| P4 MCP and operators | PASS automated; manual host BLOCKED | `1a485cb`; all six tools through compiled MCP; CLI/config/Codex examples |
+| P4 MCP and operators | PASS automated and actual Codex host | `1a485cb`; all six tools through compiled MCP; CLI/config/Codex examples |
 | P5 hardening and release qualification | Local verification PASS; external gates BLOCKED | Final hardening revision; evidence below |
 
 Initial inspection found a clean documentation-only tree at `af700dd`. The issue
@@ -64,11 +64,14 @@ host configuration was subsequently added at the operator’s request.
    the runner verifies receiver exit and removes fixtures before writing its
    result. [Evidence](evidence/apple-events-macos-interactive.json). The earlier
    noninteractive consent block remains recorded as history.
-2. **Manual Codex host exercise: READY TO RUN.** `pi_spoke` was registered in
-   the host configuration with a disposable read-only workspace and Spark.
-   Actual sandbox and direct six-tool discovery preflight passed. Host execution
-   remains unverified until Codex reloads the configuration and runs the
-   [host checklist](codex-host-verification.md).
+2. **Manual Codex host exercise: PASS.** Actual registered tools exercised all
+   six MCP operations, independent main-agent work, questions/replies, sandboxed
+   read, native continuation, steering and cancellation. All terminal runs have
+   confirmed cleanup. [Host evidence](evidence/codex-host-verification.json).
+   The host exposed a catalog auth bug: an unrefreshed Pi snapshot returned false.
+   Discovery now uses secret-free credential metadata, with null for unknown;
+   build/typecheck and [compiled MCP regression](evidence/catalog-auth-regression.txt)
+   pass. Restart the loaded host to display that metadata correction.
 3. **Two live provider integrations:** Gemini read/continuation/vision and Spark
    (`iFiy/spark-x2.5-4b`) read/continuation passed, all with confirmed cleanup.
    [Spark evidence](evidence/live-spark-macos.json). Spark is a working alternative

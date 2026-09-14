@@ -63,7 +63,7 @@ explicitly, use self-contained tasks, retain request keys across retries, observ
 without adding turns, and answer the exact pending question ID. Observation
 never acknowledges questions. MCP approvals do not enlarge session permissions.
 
-Manual host gate (configured; host execution pending): discover all six tools in Codex, choose model and
+Manual host gate (PASS, recorded 2026-09-14): discover all six tools in Codex, choose model and
 permissions explicitly, spawn while doing independent host work, observe,
 question/reply, steer, continue and cancel. Verify a task can remain entirely
 with the main agent. Follow the [prepared host checklist](codex-host-verification.md).
@@ -136,3 +136,8 @@ same-session continuation through MCP, with confirmed cleanup.
 [Spark evidence](evidence/live-spark-macos.json). It provides a working alternative
 to the Llama tool configuration; the shared gateway still does not establish
 two distinct provider integrations. No additional vision request was made.
+
+Model catalog authentication metadata is true when stored credential metadata
+or a populated Pi snapshot establishes configuration; otherwise it is null
+(unknown). This never verifies entitlement and does not execute credential
+commands or refresh provider tokens.

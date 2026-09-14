@@ -23,7 +23,10 @@ test('P4: compiled stdio six-tool public contract, durable receipts, questions, 
     await client.connect(transport);
     const list = await client.listTools(); expect(list.tools.map(tool => tool.name).sort()).toEqual(['spoke_cancel','spoke_catalog','spoke_observe','spoke_send','spoke_sessions','spoke_spawn']);
     expect(list.tools.find(tool => tool.name === 'spoke_observe')?.annotations?.readOnlyHint).toBe(true);
-    expect((await call('catalog', { kind: 'models', query: 'fixture' })).structuredContent.items[0]).toMatchObject({ provider: 'fixture', id: 'model', live_verified: false });
+    expect((await call('catalog', { kind: 'models', query: 'fixture' })).structuredContent.items[0]).toMatchObject({ provider: 'fixture', id: 'model', live_verified: false, authentication_configured: null });
+    await writeFile(join(root, 'auth'), JSON.stringify({ fixture: { type: 'api_key', key: 'fake-secret-never-output' } }));
+    expect((await call('catalog', { kind: 'models', query: 'fixture' })).structuredContent.items[0].authentication_configured).toBe(true);
+    expect(provider.requests).toHaveLength(0);
     const input = { request_key: 'spawn', task: 'ask then finish', cwd, tools: [], model: { provider: 'fixture', id: 'model' } };
     expect((await call('spawn', { ...input, unrestricted: true })).structuredContent.error.code).toBe('INVALID_ARGUMENT');
     const spawned = (await call('spawn', input)).structuredContent;

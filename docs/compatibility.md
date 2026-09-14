@@ -142,8 +142,9 @@ Direct Apple Events passed in the operator-run interactive fixture: outside
 controls succeeded and sandbox delivery returned `-600`; the finite receiver
 exited and its fixture was removed. [Interactive evidence](evidence/apple-events-macos-interactive.json).
 The earlier noninteractive `-1744` consent block is retained as history.
-Disposable Launch Services and Unix-socket checks also pass. Manual Codex use and
-two distinct live provider integrations remain blocked on external input. The
+Disposable Launch Services and Unix-socket checks also pass. Actual Codex host verification passed all six tools and lifecycle interactions.
+[Host evidence](evidence/codex-host-verification.json). Two distinct live provider
+integrations remain blocked on external input. The
 supplied gateway passed Gemini sandboxed read, native continuation and image
 input. Llama rejected automatic tool choice with HTTP 400 despite advertised
 tool support; its upstream requires tool-choice/parser configuration. Both

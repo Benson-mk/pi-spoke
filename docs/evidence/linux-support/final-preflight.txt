@@ -1,0 +1,15 @@
+
+> pi-spoke@0.1.0 build
+> tsc -p tsconfig.json && node scripts/build-native.mjs
+
+
+ RUN  v4.1.11 /home/benson/pi-spoke
+
+ ✓ tests/sandbox/supervised-tools.test.ts (1 test) 3710ms
+   ✓ real Pi worker uses guarded read/search/write/edit through actual SRT; shell authority stays separate  3709ms
+
+ Test Files  1 passed (1)
+      Tests  1 passed (1)
+   Start at  11:49:09
+   Duration  3.88s (transform 71ms, setup 0ms, import 113ms, tests 3.71s, environment 0ms)
+

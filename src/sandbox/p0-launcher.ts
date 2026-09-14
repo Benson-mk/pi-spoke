@@ -1,5 +1,8 @@
 /** Isolated sandbox manager: one policy and one subprocess per invocation. */
 import { SandboxManager, getDefaultWritePaths } from '@anthropic-ai/sandbox-runtime';
+import { platform } from 'node:os';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { spawn } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { z } from 'zod';
@@ -32,9 +35,11 @@ try {
   const dependencies = await SandboxManager.checkDependenciesAsync();
   if (dependencies.errors.length) throw new Error('SANDBOX_UNAVAILABLE: ' + dependencies.errors.join('; '));
   await SandboxManager.initialize(config, undefined, false);
-  const wrapped = await SandboxManager.wrapWithSandboxArgv(probe.command, '/bin/bash', undefined, undefined, probe.cwd);
+  const quote = (text: string) => "'" + text.replaceAll("'", "'\\''") + "'";
+  const command = platform() === 'linux' ? `${quote(join(dirname(fileURLToPath(import.meta.url)), 'native/deny-network'))} /bin/bash -c ${quote(probe.command)}` : probe.command;
+  const wrapped = await SandboxManager.wrapWithSandboxArgv(command, '/bin/bash', undefined, undefined, probe.cwd);
   if (wrapped.argv[0] !== '/bin/bash' || wrapped.argv[1] !== '-c' ||
-    !wrapped.argv[2]?.includes('sandbox-exec')) {
+    !(platform() === 'darwin' ? wrapped.argv[2]?.includes('sandbox-exec') : platform() === 'linux' && wrapped.argv[2]?.includes('bwrap') && wrapped.argv[2]?.includes('--unshare-net') && wrapped.argv[2]?.includes('apply-seccomp'))) {
     throw new Error('SANDBOX_POLICY_UNSUPPORTED: P0 wrapper shape has not been validated on this platform');
   }
   const child = spawn(wrapped.argv[0], wrapped.argv.slice(1), {

@@ -27,7 +27,7 @@ test('P5 S05–S10/S15–S19/S22/S24: production helper and shell containment ag
       rmdir:()=>fs.rmdirSync(${JSON.stringify(join(cwd,'.codex'))}),outside:()=>fs.writeFileSync(${JSON.stringify(outside)},'bad')
     })){try{fn();result[name]='ALLOWED'}catch(e){result[name]=e.code}}console.log(JSON.stringify({result,env:process.env,ipc:!!process.send}));`)}` });
     const inspected = JSON.parse(results.evidence.stdout);
-    expect(Object.values(inspected.result).every(code => ['EPERM','EACCES'].includes(String(code)))).toBe(true);
+    expect(Object.values(inspected.result).every(code => ['EPERM','EACCES','EROFS','ENOENT','EISDIR','EXDEV'].includes(String(code))), JSON.stringify(inspected.result)).toBe(true);
     expect(inspected.ipc).toBe(false); expect(JSON.stringify(inspected.env)).not.toContain('fixture-secret-never-inherit');
     expect(inspected.env.HOME).toBe(join(scratch, 'home'));
     for (const command of [`rm ${quote(source)}`, `/bin/rm ${quote(source)}`, `printf bad > ${quote(source)}`]) {

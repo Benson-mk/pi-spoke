@@ -73,7 +73,7 @@ export class Api {
       if (!scope) fail('INVALID_ARGUMENT', 'cwd is required for skill discovery');
       items = (await skillCatalog(this.app.config, scope.cwd)).map(({ id, disabled, ...item }) => ({ ...item, skill_id: id, available_for_model_invocation: !disabled }));
     } else {
-      const backendPresent = platform() === 'darwin' && await access('/usr/bin/sandbox-exec').then(() => true, () => false);
+      const backendPresent = ['darwin', 'linux'].includes(platform()) && await access(platform() === 'linux' ? '/usr/bin/bwrap' : '/usr/bin/sandbox-exec').then(() => true, () => false);
       items = this.app.config.allowed_tools.map(name => ({ name, description: name === 'bash' ? 'Sandboxed shell: source read-only, network denied, private scratch writable including deletion. Descendant cleanup is unconfirmed; completed shell work ends interrupted.' : ['write','edit'].includes(name) ? 'Fixed sandboxed file helper; explicit independent file-write roots required.' : 'Fixed sandboxed read/search helper.',
         availability: backendPresent ? 'preflight_required' : 'sandbox_unavailable', sandbox_backend: 'srt', sandbox_version: '0.0.76', tool_network: 'none',
         cwd: scope?.cwd ?? null, file_write_ceiling: scope ? this.app.config.permissions.file_write_roots.filter(root => within(scope.workspace, root)) : [],

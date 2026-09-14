@@ -11,7 +11,7 @@ import { checkWritableTopology } from '../security/topology.js';
 import { fail, SpokeError } from '../core/errors.js';
 import { within } from '../helpers/file-operations.js';
 import { verifyQualification } from './qualification.js';
-import { ripgrepSha256 } from './qualification-pins.js';
+import { ripgrepSha256, linuxRipgrepSha256 } from './qualification-pins.js';
 
 const quote = (text: string) => "'" + text.replaceAll("'", "'\\''") + "'";
 const here = dirname(fileURLToPath(import.meta.url));
@@ -31,7 +31,7 @@ export class Sandbox {
   }
   private async invoke(runId: string, policy: ResolvedPolicy, scratch: string, command: string, stdin: string, writer: boolean, timeout_ms = 15000): Promise<Outcome> {
     if (this.cancelled.has(runId)) fail('RUN_NOT_ACTIVE');
-    if (platform() !== 'darwin') fail('SANDBOX_UNAVAILABLE', 'This build has only qualified the macOS adapter baseline');
+    if (!['darwin', 'linux'].includes(platform())) fail('SANDBOX_UNAVAILABLE', 'No qualified adapter for this platform');
     await verifyQualification(this.runtimeRoot).catch(error => { if (error instanceof SpokeError) throw error; fail('SANDBOX_UNAVAILABLE', 'Compatibility identity cannot be verified'); });
     await checkWritableTopology(scratch);
     for (const identity of [policy.cwdIdentity, policy.workspaceIdentity, ...policy.rootIdentities]) {
@@ -44,7 +44,7 @@ export class Sandbox {
       writeAllow: writer ? policy.file_write_roots : policy.shell_write_roots,
       writeDeny: policy.protected_write_paths,
       readDeny: [homedir(), root, ...policy.protected_read_paths],
-      readAllow: [policy.workspace, scratch, this.runtimeRoot, ...(policy.resources?.skills.map(skill => skill.baseDir) ?? []), ...this.config.sandbox.additional_toolchain_read_paths],
+      readAllow: [policy.workspace, scratch, this.runtimeRoot, process.execPath, ...(policy.resources?.skills.map(skill => skill.baseDir) ?? []), ...this.config.sandbox.additional_toolchain_read_paths],
     };
     if (Buffer.byteLength(JSON.stringify(payload)) > 1024 * 1024) fail('LIMIT_EXCEEDED');
     if (this.cancelled.has(runId)) fail('RUN_NOT_ACTIVE');
@@ -67,19 +67,20 @@ export class Sandbox {
     } finally { clearTimeout(timer); active.delete(child); if (!active.size) this.active.delete(runId); }
   }
   async preflight(runId: string, policy: ResolvedPolicy, scratch: string) {
-    if (platform() !== 'darwin') fail('SANDBOX_UNAVAILABLE', 'This build has only qualified the macOS adapter baseline');
-    const binary = await realpath('/usr/bin/sandbox-exec').catch(() => fail('SANDBOX_UNAVAILABLE', 'Seatbelt executable is unavailable'));
+    if (!['darwin', 'linux'].includes(platform())) fail('SANDBOX_UNAVAILABLE', 'No qualified adapter for this platform');
+    const binary = await realpath(platform() === 'linux' ? '/usr/bin/bwrap' : '/usr/bin/sandbox-exec').catch(() => fail('SANDBOX_UNAVAILABLE', 'Sandbox executable is unavailable'));
     const sha256 = createHash('sha256').update(await readFile(binary)).digest('hex');
     const fixture = await mkdtemp(join(this.config.scratch_dir, 'probe-')), outside = join(fixture, 'outside');
     await writeFile(outside, 'outside canary', { mode: 0o600 });
+    const deniedWriteCodes = JSON.stringify(platform() === 'linux' ? ['EPERM', 'EACCES', 'EROFS', 'ENOENT'] : ['EPERM', 'EACCES']);
     const program = `const fs=require('node:fs');fs.writeFileSync(${JSON.stringify(join(scratch, 'canary'))},'ok');fs.unlinkSync(${JSON.stringify(join(scratch, 'canary'))});
-      let denied=false;try{fs.writeFileSync(${JSON.stringify(outside)},'bad')}catch(e){denied=['EPERM','EACCES'].includes(e.code)}if(!denied)throw Error('write boundary absent');
+      let denied=false;try{fs.writeFileSync(${JSON.stringify(outside)},'bad')}catch(e){denied=${deniedWriteCodes}.includes(e.code)}if(!denied)throw Error('write boundary absent');
       const s=require('node:net').createServer();s.on('error',e=>{if(!['EPERM','EACCES'].includes(e.code))throw e;console.log('sandbox-ready')});s.listen(0,'127.0.0.1',()=>{s.close();throw Error('network boundary absent')});`;
     try {
       const result = await this.invoke(runId, policy, scratch, `${quote(process.execPath)} -e ${quote(program)}`, '', false);
       if (result.code !== 0 || result.stdout.trim() !== 'sandbox-ready' || await readFile(outside, 'utf8') !== 'outside canary') fail('SANDBOX_UNAVAILABLE');
     } finally { await rm(fixture, { recursive: true, force: true }); }
-    return { name: 'srt', version: '0.0.76', platform: platform(), architecture: arch(), os: release(), enforcement: 'seatbelt',
+    return { name: 'srt', version: '0.0.76', platform: platform(), architecture: arch(), os: release(), enforcement: platform() === 'linux' ? 'bubblewrap' : 'seatbelt',
       binary, binary_sha256: sha256, preflight_id: createHash('sha256').update(runId + sha256 + policy.policy_hash).digest('hex') };
   }
   async tool(runId: string, policy: ResolvedPolicy, scratch: string, name: string, args: unknown) {
@@ -100,7 +101,7 @@ export class Sandbox {
     if (name === 'grep' || name === 'find') {
       for (const candidate of ['/opt/homebrew/bin/rg', '/usr/bin/rg']) { try { rg = await realpath(candidate); break; } catch {} }
       if (!rg) fail('SANDBOX_UNAVAILABLE', 'A trusted ripgrep installation is required');
-      if (createHash('sha256').update(await readFile(rg)).digest('hex') !== ripgrepSha256) fail('SANDBOX_UNAVAILABLE', 'Ripgrep compatibility identity changed; requalification is required');
+      if (createHash('sha256').update(await readFile(rg)).digest('hex') !== (platform() === 'linux' ? linuxRipgrepSha256 : ripgrepSha256)) fail('SANDBOX_UNAVAILABLE', 'Ripgrep compatibility identity changed; requalification is required');
     }
     const payload = { ...input, operation, authority, ...(rg ? { rg } : {}) };
     const result = await this.invoke(runId, policy, scratch, `${quote(process.execPath)} ${quote(join(this.runtimeRoot, 'dist/helpers/file-tool-entry.js'))}`, JSON.stringify(payload), name === 'edit' || name === 'write');

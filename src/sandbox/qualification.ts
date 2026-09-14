@@ -3,9 +3,9 @@ import { join, relative } from 'node:path';
 import { platform, arch, release } from 'node:os';
 import { createHash } from 'node:crypto';
 import { fail } from '../core/errors.js';
-import { qualificationPins } from './qualification-pins.js';
+import { qualificationPins, linuxQualificationPins } from './qualification-pins.js';
 
-export type Qualification = { platform: string; architecture: string; os: string; lock: string; node: string; bash: string; backend: string; compiler: string };
+export type Qualification = { platform: string; architecture: string; os: string; lock: string; node: string; bash: string; backend: string; compiler: string; networkFilter?: string; srtSeccomp?: string; socat?: string };
 const hash = async (path: string) => createHash('sha256').update(await readFile(path)).digest('hex');
 export async function installedQualification(runtimeRoot: string): Promise<Qualification> {
   const root = join(runtimeRoot, 'node_modules/@anthropic-ai/sandbox-runtime'), files: string[] = [];
@@ -17,10 +17,11 @@ export async function installedQualification(runtimeRoot: string): Promise<Quali
   await walk(join(root, 'dist')); files.push(join(root, 'package.json')); files.sort();
   const entries = await Promise.all(files.map(async file => [relative(root, file), await hash(file)]));
   return { platform: platform(), architecture: arch(), os: release(), lock: await hash(join(runtimeRoot, 'package-lock.json')),
-    node: await hash(process.execPath), bash: await hash('/bin/bash'), backend: await hash(await realpath('/usr/bin/sandbox-exec')),
+    node: await hash(process.execPath), bash: await hash('/bin/bash'), backend: await hash(await realpath(platform() === 'linux' ? '/usr/bin/bwrap' : '/usr/bin/sandbox-exec')),
+    ...(platform() === 'linux' ? { networkFilter: await hash(join(runtimeRoot, 'dist/sandbox/native/deny-network')), srtSeccomp: await hash(join(root, 'vendor/seccomp', arch() === 'arm64' ? 'arm64' : 'x64', 'apply-seccomp')), socat: await hash('/usr/bin/socat') } : {}),
     compiler: createHash('sha256').update(JSON.stringify(entries)).digest('hex') };
 }
-export function assertQualification(actual: Qualification, expected: Qualification = qualificationPins): void {
+export function assertQualification(actual: Qualification, expected: Qualification = actual.platform === 'linux' ? linuxQualificationPins : qualificationPins): void {
   for (const key of Object.keys(expected) as (keyof Qualification)[]) if (actual[key] !== expected[key]) fail('SANDBOX_UNAVAILABLE', `Compatibility proof invalidated (${key}); rerun qualification before enabling execution`);
 }
 export async function verifyQualification(runtimeRoot: string) {

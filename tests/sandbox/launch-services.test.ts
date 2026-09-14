@@ -3,6 +3,7 @@ import { join,resolve } from 'node:path';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { randomUUID } from 'node:crypto';
+import { platform } from 'node:os';
 import { test,expect } from 'vitest';
 import { parseConfig } from '../../src/config.js';
 import { spawnSchema } from '../../src/contracts.js';
@@ -10,7 +11,7 @@ import { resolvePolicy } from '../../src/security/policy.js';
 import { Sandbox } from '../../src/sandbox/backend.js';
 const execute=promisify(execFile);
 
-test('S26: Launch Services cannot start a disposable background app outside the tool sandbox',async()=>{
+test.skipIf(platform() !== 'darwin')('S26: Launch Services cannot start a disposable background app outside the tool sandbox',async()=>{
   const root=await realpath(await mkdtemp('/private/tmp/ps-launch-')),cwd=join(root,'p'),bundle=join(root,'Canary.app'),binary=join(bundle,'Contents/MacOS/canary'),marker=join(root,'launched');
   await mkdir(cwd);await mkdir(join(bundle,'Contents/MacOS'),{recursive:true});
   await writeFile(join(bundle,'Contents/Info.plist'),`<?xml version="1.0"?><!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd"><plist version="1.0"><dict><key>CFBundleExecutable</key><string>canary</string><key>CFBundleIdentifier</key><string>local.pi-spoke.fixture.${randomUUID()}</string><key>CFBundlePackageType</key><string>APPL</string><key>LSBackgroundOnly</key><true/></dict></plist>`);

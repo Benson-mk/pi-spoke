@@ -5,6 +5,7 @@ import { join, resolve } from 'node:path';
 import { createHash } from 'node:crypto';
 import { createServer } from 'node:net';
 import { afterEach, expect, test } from 'vitest';
+import { checkWritableTopology } from '../../src/security/topology.js';
 
 const roots: string[] = [];
 afterEach(async () => { for (const path of roots.splice(0)) await rm(path, { recursive: true, force: true }); });
@@ -52,7 +53,7 @@ test('P0 S04–S08/S11/S12: real source protection with permitted scratch and se
   expect(result.code, result.stderr).toBe(0);
   const operations = JSON.parse(result.stdout);
   expect(operations.scratch).toBe('allowed');
-  for (const key of ['unlink', 'truncate', 'outside', 'unrelated']) expect(['EPERM', 'EACCES']).toContain(operations[key]);
+  for (const key of ['unlink', 'truncate', 'outside', 'unrelated']) expect(platform() === 'linux' ? ['EROFS','EPERM','EACCES'] : ['EPERM','EACCES']).toContain(operations[key]);
   expect(await readFile(f.source, 'utf8')).toBe('source canary');
   expect(await readFile(canary, 'utf8')).toBe('temporary canary');
   const shell = await f.run(`/bin/rm ${quote(f.source)}; printf bad > ${quote(f.source)}`);
@@ -73,13 +74,10 @@ test('P0 S20: investigate writable hard-link alias to read-only source', async (
   const dynamic = await f.run(`${quote(process.execPath)} -e ${quote(`const fs=require('node:fs');try{fs.linkSync(${JSON.stringify(f.source)},${JSON.stringify(join(f.scratch, 'new-alias'))});fs.writeFileSync(${JSON.stringify(join(f.scratch, 'new-alias'))},'dynamic-alias')}catch(e){console.log(e.code)}`)}`);
   console.log(JSON.stringify({ case: 'S20-dynamic', result: dynamic, after: await readFile(f.source, 'utf8') }));
   expect(await readFile(f.source, 'utf8')).toBe('source canary');
-  expect(dynamic.stdout.trim()).toBe('EPERM');
+  expect(dynamic.stdout.trim()).toBe(platform() === 'linux' ? 'EXDEV' : 'EPERM');
   await link(f.source, join(f.scratch, 'alias'));
-  const result = await f.run(`printf alias-write > ${quote(join(f.scratch, 'alias'))}`);
-  const after = await readFile(f.source, 'utf8');
-  console.log(JSON.stringify({ case: 'S20', aliasWriteExit: result.code, sourceBefore: 'source canary', sourceAfter: after }));
-  // Characterization: the final compiler must reject this topology if the OS permits it.
-  expect(['source canary', 'alias-write']).toContain(after);
+  await expect(checkWritableTopology(f.scratch)).rejects.toThrow('UNSAFE_PATH');
+  expect(await readFile(f.source, 'utf8')).toBe('source canary');
 }, 30000);
 
 test('P0 S14/S23: missing protected targets and nested read denies survive workspace reopening', async () => {
@@ -97,7 +95,10 @@ test('P0 S14/S23: missing protected targets and nested read denies survive works
   expect(result.code, result.stderr).toBe(0);
   const ops = JSON.parse(result.stdout);
   expect(ops.source).toBe('source canary'); expect(ops.ordinary).toBe('allowed');
-  for (const key of ['secret', 'renameSecret', 'missing']) expect(['EPERM', 'EACCES']).toContain(ops[key]);
+  if (platform() === 'linux') {
+    expect(ops.secret).toBe('ENOENT'); expect(ops.renameSecret).toBe('EBUSY'); expect(ops.missing).toBe('EEXIST');
+    expect(await readFile(join(secret, 'key'), 'utf8')).toBe('fake credential');
+  } else for (const key of ['secret', 'renameSecret', 'missing']) expect(['EPERM', 'EACCES']).toContain(ops[key]);
 }, 30000);
 
 test('P0 S25/S26: actual loopback IPv4/IPv6, listener and Unix socket denial', async () => {

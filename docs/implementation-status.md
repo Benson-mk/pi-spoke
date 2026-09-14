@@ -93,6 +93,31 @@ Linux verification was subsequently run against commit `2e3523c` in an isolated
 Ubuntu 24.04.5 arm64 OrbStack VM: build/typecheck/install and 28 non-sandbox
 tests passed; all 16 sandbox tests failed on the macOS-specific adapter and
 fixtures. Bubblewrap itself passed a primitive launch/network-namespace probe.
-Linux remains unsupported; the existing release qualification is macOS-only.
-[Linux results](evidence/linux-orbstack/summary.json). The VM is stopped and
-retained as `pi-spoke-linux-test`; no live-provider credentials were copied.
+That historical failure led to the Linux adapter below. The existing release
+qualification remains macOS-only. [Initial Linux results](evidence/linux-orbstack/summary.json).
+
+
+## Linux follow-up
+
+Implemented the Linux SRT/bubblewrap adapter with a mandatory native network
+seccomp filter, exact dependency identities, platform-aware capability reporting,
+and containment fixtures. Structured file writes remain independent from shell
+write authority; unsupported project shell writes are rejected. A final rerun
+exposed and fixed `drain()` returning before a newly initiated cancellation
+completed. Historical failures are retained with the new verification evidence.
+
+Local qualification covers real Pi with a fake provider, the public MCP contract,
+actual sandbox canaries, mounted tmpfs rejection and actual ENOSPC with receipt
+retention and verified unmount. All A01–A30/S01–S36 cases remain tracked in the
+[Linux ledger](evidence/linux-support/acceptance.json). External Linux live checks
+await explicit authorization to temporarily transfer supplied credentials and
+send disposable fixture data; no credentials have been copied. A Linux Codex
+host exercise remains unrun. Linux release readiness is not claimed.
+
+
+Verification: Linux `npm run verify` passed **43 tests**, with one macOS-only
+Launch Services test skipped. The final stricter preflight passed the real-Pi
+supervised tools check. macOS regression passed **44 tests**, plus focused MCP
+and preflight checks after the final refinements. Build/typecheck passed. See
+[evidence](evidence/linux-support/verify.txt); the earlier drain race and
+one-second MCP polling timeout are retained alongside passing results.

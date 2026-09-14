@@ -1,0 +1,836 @@
+{
+  "platform": "linux-arm64-orbstack",
+  "release_ready": false,
+  "note": "Local coverage only. All 66 accepted cases retained; external gates are separate. See compatibility.md for exact identities.",
+  "cases": [
+    {
+      "id": "A01",
+      "scenario": "Spawn without an earlier catalog call",
+      "required": "Works with a valid explicit model; no init gate",
+      "source": "docs/IMPLEMENTATION_PLAN.md",
+      "status": "PASS",
+      "evidence": [
+        "tests/contract/supervised.test.ts",
+        "docs/evidence/linux-support/verify.txt"
+      ]
+    },
+    {
+      "id": "A02",
+      "scenario": "No skills requested",
+      "required": "No skill bodies or unrelated descriptions in worker context",
+      "source": "docs/IMPLEMENTATION_PLAN.md",
+      "status": "PASS",
+      "evidence": [
+        "tests/contract/pi.test.ts",
+        "docs/evidence/linux-support/verify.txt"
+      ]
+    },
+    {
+      "id": "A03",
+      "scenario": "Two skills suggested, worker reads neither",
+      "required": "Run can complete; no corrective loop or forced loading",
+      "source": "docs/IMPLEMENTATION_PLAN.md",
+      "status": "PASS",
+      "evidence": [
+        "tests/sandbox/skills.test.ts",
+        "docs/evidence/linux-support/verify.txt"
+      ]
+    },
+    {
+      "id": "A04",
+      "scenario": "Global/project workflow resources installed",
+      "required": "Unselected resources and system overrides do not enter the worker context",
+      "source": "docs/IMPLEMENTATION_PLAN.md",
+      "status": "PASS",
+      "evidence": [
+        "tests/contract/pi.test.ts",
+        "docs/evidence/linux-support/verify.txt"
+      ]
+    },
+    {
+      "id": "A05",
+      "scenario": "Model unavailable or requested thinking gets clamped",
+      "required": "Clear failure; no substitute model or silent setting change",
+      "source": "docs/IMPLEMENTATION_PLAN.md",
+      "status": "PASS",
+      "evidence": [
+        "tests/contract/admission.test.ts",
+        "tests/contract/pi.test.ts",
+        "docs/evidence/linux-support/verify.txt"
+      ]
+    },
+    {
+      "id": "A06",
+      "scenario": "Same accepted spawn request repeated",
+      "required": "Same session/run; one launch",
+      "source": "docs/IMPLEMENTATION_PLAN.md",
+      "status": "PASS",
+      "evidence": [
+        "tests/integration/mcp.test.ts",
+        "tests/integration/service.test.ts",
+        "tests/unit/policy.test.ts",
+        "docs/evidence/linux-support/verify.txt"
+      ]
+    },
+    {
+      "id": "A07",
+      "scenario": "Same key with different input",
+      "required": "Idempotency conflict; no launch",
+      "source": "docs/IMPLEMENTATION_PLAN.md",
+      "status": "PASS",
+      "evidence": [
+        "tests/integration/mcp.test.ts",
+        "tests/integration/service.test.ts",
+        "tests/unit/policy.test.ts",
+        "docs/evidence/linux-support/verify.txt"
+      ]
+    },
+    {
+      "id": "A08",
+      "scenario": "Two continuations race on one session",
+      "required": "Only one admitted; other receives current state/stale conflict",
+      "source": "docs/IMPLEMENTATION_PLAN.md",
+      "status": "PASS",
+      "evidence": [
+        "tests/integration/service.test.ts",
+        "tests/unit/policy.test.ts",
+        "docs/evidence/linux-support/verify.txt"
+      ]
+    },
+    {
+      "id": "A09",
+      "scenario": "Host observes an active run repeatedly",
+      "required": "No new turn, skill read, or model call",
+      "source": "docs/IMPLEMENTATION_PLAN.md",
+      "status": "PASS",
+      "evidence": [
+        "tests/integration/mcp.test.ts",
+        "tests/integration/service.test.ts",
+        "tests/unit/policy.test.ts",
+        "docs/evidence/linux-support/verify.txt"
+      ]
+    },
+    {
+      "id": "A10",
+      "scenario": "Observe wait expires",
+      "required": "Worker remains active; timeout is explicit",
+      "source": "docs/IMPLEMENTATION_PLAN.md",
+      "status": "PASS",
+      "evidence": [
+        "tests/integration/service.test.ts",
+        "tests/unit/policy.test.ts",
+        "docs/evidence/linux-support/verify.txt"
+      ]
+    },
+    {
+      "id": "A11",
+      "scenario": "Worker asks a question",
+      "required": "Visible pending question; exact reply unblocks the original tool call",
+      "source": "docs/IMPLEMENTATION_PLAN.md",
+      "status": "PASS",
+      "evidence": [
+        "tests/contract/communication.test.ts",
+        "tests/integration/mcp.test.ts",
+        "tests/integration/service.test.ts",
+        "tests/unit/policy.test.ts",
+        "docs/evidence/linux-support/verify.txt"
+      ]
+    },
+    {
+      "id": "A12",
+      "scenario": "Steer sent while worker is blocked on a question",
+      "required": "Explicit instruction to use reply; no deadlock hidden as delivery",
+      "source": "docs/IMPLEMENTATION_PLAN.md",
+      "status": "PASS",
+      "evidence": [
+        "tests/integration/mcp.test.ts",
+        "tests/integration/service.test.ts",
+        "tests/unit/policy.test.ts",
+        "docs/evidence/linux-support/verify.txt"
+      ]
+    },
+    {
+      "id": "A13",
+      "scenario": "Worker proposes a reusable lesson",
+      "required": "Proposal persisted; skills, prompts, and AGENTS.md unchanged",
+      "source": "docs/IMPLEMENTATION_PLAN.md",
+      "status": "PASS",
+      "evidence": [
+        "tests/contract/communication.test.ts",
+        "tests/sandbox/skills.test.ts",
+        "docs/evidence/linux-support/verify.txt"
+      ]
+    },
+    {
+      "id": "A14",
+      "scenario": "Worker tool action completes but agent continues",
+      "required": "Run remains running; not marked completed early",
+      "source": "docs/IMPLEMENTATION_PLAN.md",
+      "status": "PASS",
+      "evidence": [
+        "tests/contract/communication.test.ts",
+        "tests/sandbox/supervised-tools.test.ts",
+        "docs/evidence/linux-support/verify.txt"
+      ]
+    },
+    {
+      "id": "A15",
+      "scenario": "Cancel during provider call, shell, or question",
+      "required": "Prompt/tool waits terminate; managed processes cleaned; status honest",
+      "source": "docs/IMPLEMENTATION_PLAN.md",
+      "status": "PASS",
+      "evidence": [
+        "tests/contract/admission.test.ts",
+        "tests/contract/lifecycle.test.ts",
+        "tests/integration/service.test.ts",
+        "tests/sandbox/mcp.test.ts",
+        "tests/unit/policy.test.ts",
+        "docs/evidence/linux-support/verify.txt"
+      ]
+    },
+    {
+      "id": "A16",
+      "scenario": "One worker crashes",
+      "required": "Siblings/server remain usable; crashed run not falsely completed",
+      "source": "docs/IMPLEMENTATION_PLAN.md",
+      "status": "PASS",
+      "evidence": [
+        "tests/contract/lifecycle.test.ts",
+        "docs/evidence/linux-support/verify.txt"
+      ]
+    },
+    {
+      "id": "A17",
+      "scenario": "Supervisor dies after acceptance",
+      "required": "Restart does not replay; original receipt remains queryable",
+      "source": "docs/IMPLEMENTATION_PLAN.md",
+      "status": "PASS",
+      "evidence": [
+        "tests/integration/mcp-restart.test.ts",
+        "tests/integration/service.test.ts",
+        "tests/unit/policy.test.ts",
+        "docs/evidence/linux-support/verify.txt"
+      ]
+    },
+    {
+      "id": "A18",
+      "scenario": "Safe persisted session continued after restart",
+      "required": "Same conversation from validated checkpoint, new run ID",
+      "source": "docs/IMPLEMENTATION_PLAN.md",
+      "status": "PASS",
+      "evidence": [
+        "tests/integration/mcp-restart.test.ts",
+        "tests/integration/service.test.ts",
+        "tests/unit/policy.test.ts",
+        "docs/evidence/linux-support/verify.txt"
+      ]
+    },
+    {
+      "id": "A19",
+      "scenario": "Corrupt/unsafe partial session",
+      "required": "No fabricated tool result or blind replay; clear recovery limitation",
+      "source": "docs/IMPLEMENTATION_PLAN.md",
+      "status": "PASS",
+      "evidence": [
+        "tests/contract/checkpoints.test.ts",
+        "tests/integration/service.test.ts",
+        "tests/unit/policy.test.ts",
+        "docs/evidence/linux-support/verify.txt"
+      ]
+    },
+    {
+      "id": "A20",
+      "scenario": "Unavailable modality or bad image input",
+      "required": "Explicit rejection; no silent image drop",
+      "source": "docs/IMPLEMENTATION_PLAN.md",
+      "status": "PASS",
+      "evidence": [
+        "tests/contract/admission.test.ts",
+        "docs/evidence/linux-support/verify.txt"
+      ]
+    },
+    {
+      "id": "A21",
+      "scenario": "Tool not granted / path outside allowed file roots",
+      "required": "The callable tool surface or guardrail rejects it; skills without a reader do not gain tools implicitly",
+      "source": "docs/IMPLEMENTATION_PLAN.md",
+      "status": "PASS",
+      "evidence": [
+        "tests/integration/helpers.test.ts",
+        "tests/unit/policy.test.ts",
+        "docs/evidence/linux-support/verify.txt"
+      ]
+    },
+    {
+      "id": "A22",
+      "scenario": "Shell explicitly granted",
+      "required": "Actual OS sandbox is established; source is read-only absent a separate grant; scope/backend/policy are reported accurately",
+      "source": "docs/IMPLEMENTATION_PLAN.md",
+      "status": "PASS",
+      "evidence": [
+        "tests/sandbox/mcp.test.ts",
+        "tests/sandbox/security-matrix.test.ts",
+        "docs/evidence/linux-support/verify.txt"
+      ]
+    },
+    {
+      "id": "A23",
+      "scenario": "Duplicate worker event or reply",
+      "required": "No duplicate question, message, or side effect from re-delivery",
+      "source": "docs/IMPLEMENTATION_PLAN.md",
+      "status": "PASS",
+      "evidence": [
+        "tests/contract/communication.test.ts",
+        "tests/integration/service.test.ts",
+        "tests/unit/policy.test.ts",
+        "docs/evidence/linux-support/verify.txt"
+      ]
+    },
+    {
+      "id": "A24",
+      "scenario": "Long output, Unicode, and event pagination",
+      "required": "Explicit truncation and lossless valid UTF-8 pagination",
+      "source": "docs/IMPLEMENTATION_PLAN.md",
+      "status": "PASS",
+      "evidence": [
+        "tests/integration/mcp.test.ts",
+        "tests/integration/service.test.ts",
+        "tests/unit/policy.test.ts",
+        "docs/evidence/linux-support/verify.txt"
+      ]
+    },
+    {
+      "id": "A25",
+      "scenario": "Cleanup/GC followed by reuse of an old request key",
+      "required": "Tombstone prevents accidental new work",
+      "source": "docs/IMPLEMENTATION_PLAN.md",
+      "status": "PASS",
+      "evidence": [
+        "tests/integration/operator.test.ts",
+        "tests/integration/service.test.ts",
+        "tests/unit/policy.test.ts",
+        "docs/evidence/linux-support/verify.txt"
+      ]
+    },
+    {
+      "id": "A26",
+      "scenario": "Request or skill metadata contains literal slash commands",
+      "required": "No automatic template/skill command expansion",
+      "source": "docs/IMPLEMENTATION_PLAN.md",
+      "status": "PASS",
+      "evidence": [
+        "tests/contract/communication.test.ts",
+        "tests/contract/pi.test.ts",
+        "docs/evidence/linux-support/verify.txt"
+      ]
+    },
+    {
+      "id": "A27",
+      "scenario": "Valid fresh spawn using a different configured provider",
+      "required": "No task-specific role or routing code is required",
+      "source": "docs/IMPLEMENTATION_PLAN.md",
+      "status": "PASS",
+      "evidence": [
+        "tests/contract/lifecycle.test.ts",
+        "docs/evidence/linux-support/verify.txt"
+      ]
+    },
+    {
+      "id": "A28",
+      "scenario": "Active-run cap reached",
+      "required": "Explicit admission failure; no hidden queue or unbounded process creation",
+      "source": "docs/IMPLEMENTATION_PLAN.md",
+      "status": "PASS",
+      "evidence": [
+        "tests/integration/service.test.ts",
+        "tests/unit/policy.test.ts",
+        "docs/evidence/linux-support/verify.txt"
+      ]
+    },
+    {
+      "id": "A29",
+      "scenario": "External credential text appears in errors/log inputs",
+      "required": "Recognized secrets redacted; credentials absent from manifests",
+      "source": "docs/IMPLEMENTATION_PLAN.md",
+      "status": "PASS",
+      "evidence": [
+        "tests/contract/admission.test.ts",
+        "tests/integration/mcp.test.ts",
+        "tests/unit/redaction.test.ts",
+        "docs/evidence/linux-support/verify.txt"
+      ]
+    },
+    {
+      "id": "A30",
+      "scenario": "Main agent chooses not to delegate",
+      "required": "No hook or mandatory workflow forces pi-spoke use",
+      "source": "docs/IMPLEMENTATION_PLAN.md",
+      "status": "PASS",
+      "evidence": [
+        "examples/codex.toml",
+        "src/cli.ts",
+        "src/mcp/server.ts",
+        "docs/evidence/linux-support/verify.txt"
+      ],
+      "scope": "Structural inspection and public MCP tests; actual Linux Codex host exercise remains unrun."
+    },
+    {
+      "id": "S01",
+      "scenario": "Default operator config; request `bash`, `edit`, or `write`",
+      "required": "Explicit tool rejection before inference; no helper launched; no authority inherited from other config fields",
+      "source": "docs/SAFETY_TESTS.md",
+      "status": "PASS",
+      "evidence": [
+        "tests/integration/service.test.ts",
+        "tests/unit/policy.test.ts",
+        "docs/evidence/linux-support/verify.txt"
+      ]
+    },
+    {
+      "id": "S02",
+      "scenario": "Operator allows editing; spawn omits file-write roots",
+      "required": "`WRITE_SCOPE_REQUIRED`; adding the tool alone does not authorize the workspace",
+      "source": "docs/SAFETY_TESTS.md",
+      "status": "PASS",
+      "evidence": [
+        "tests/integration/service.test.ts",
+        "tests/unit/policy.test.ts",
+        "docs/evidence/linux-support/verify.txt"
+      ]
+    },
+    {
+      "id": "S03",
+      "scenario": "Request a root partly or wholly outside the operator ceiling",
+      "required": "Whole request rejected; no silent intersection, clamping, widening, or fallback",
+      "source": "docs/SAFETY_TESTS.md",
+      "status": "PASS",
+      "evidence": [
+        "tests/integration/service.test.ts",
+        "tests/unit/policy.test.ts",
+        "docs/evidence/linux-support/verify.txt"
+      ]
+    },
+    {
+      "id": "S04",
+      "scenario": "Enable `bash` with empty shell-write roots",
+      "required": "Effective shell has read-only project plus private scratch; file-edit grants do not alter it",
+      "source": "docs/SAFETY_TESTS.md",
+      "status": "PASS",
+      "evidence": [
+        "tests/sandbox/p0.test.ts",
+        "tests/sandbox/security-matrix.test.ts",
+        "docs/evidence/linux-support/verify.txt"
+      ]
+    },
+    {
+      "id": "S05",
+      "scenario": "Delete source using `rm`, absolute `/bin/rm`, interpreter unlink, and directory removal",
+      "required": "All source mutations blocked by the OS boundary, with canaries unchanged",
+      "source": "docs/SAFETY_TESTS.md",
+      "status": "PASS",
+      "evidence": [
+        "tests/sandbox/security-matrix.test.ts",
+        "docs/evidence/linux-support/verify.txt"
+      ]
+    },
+    {
+      "id": "S06",
+      "scenario": "Truncate/overwrite source using shell redirection, Python/Node file APIs, and rename replacement",
+      "required": "Denied under source-read-only shell; testing only `rm` is insufficient",
+      "source": "docs/SAFETY_TESTS.md",
+      "status": "PASS",
+      "evidence": [
+        "tests/sandbox/security-matrix.test.ts",
+        "docs/evidence/linux-support/verify.txt"
+      ]
+    },
+    {
+      "id": "S07",
+      "scenario": "Modify an outside-root file, including a second configured workspace",
+      "required": "Denied through shell and structured tools; access to one workspace does not authorize all workspaces",
+      "source": "docs/SAFETY_TESTS.md",
+      "status": "PASS",
+      "evidence": [
+        "tests/sandbox/security-matrix.test.ts",
+        "docs/evidence/linux-support/verify.txt"
+      ]
+    },
+    {
+      "id": "S08",
+      "scenario": "Perform an authorized structured edit while shell cannot edit the same path",
+      "required": "Structured change succeeds; shell attempts fail; diffs and policy hashes identify the two paths of authority",
+      "source": "docs/SAFETY_TESTS.md",
+      "status": "PASS",
+      "evidence": [
+        "tests/sandbox/p0.test.ts",
+        "tests/sandbox/supervised-tools.test.ts",
+        "docs/evidence/linux-support/verify.txt"
+      ]
+    },
+    {
+      "id": "S09",
+      "scenario": "Authorized structured write creates a file in an existing allowed parent",
+      "required": "Succeeds without granting shell write rights; target guard and OS helper are actually exercised",
+      "source": "docs/SAFETY_TESTS.md",
+      "status": "PASS",
+      "evidence": [
+        "tests/sandbox/supervised-tools.test.ts",
+        "docs/evidence/linux-support/verify.txt"
+      ]
+    },
+    {
+      "id": "S10",
+      "scenario": "Authorized `write` empties an ordinary allowed file",
+      "required": "The test may succeed: record that permitted writes can destroy content. Do not mislabel the system \u201cno data loss\u201d",
+      "source": "docs/SAFETY_TESTS.md",
+      "status": "PASS",
+      "evidence": [
+        "tests/sandbox/security-matrix.test.ts",
+        "docs/evidence/linux-support/verify.txt"
+      ]
+    },
+    {
+      "id": "S11",
+      "scenario": "Write and delete a scratch file",
+      "required": "Allowed only in the invocation/run-owned scratch; private state and other workers' scratch remain protected",
+      "source": "docs/SAFETY_TESTS.md",
+      "status": "PASS",
+      "evidence": [
+        "tests/sandbox/p0.test.ts",
+        "docs/evidence/linux-support/verify.txt"
+      ]
+    },
+    {
+      "id": "S12",
+      "scenario": "Write or delete unrelated host `/tmp` / `/private/tmp` canaries",
+      "required": "Denied; upstream implicit temporary grants cannot expose broad shared host temporary storage",
+      "source": "docs/SAFETY_TESTS.md",
+      "status": "PASS",
+      "evidence": [
+        "tests/sandbox/p0.test.ts",
+        "docs/evidence/linux-support/verify.txt"
+      ]
+    },
+    {
+      "id": "S13",
+      "scenario": "Explicit existing build-output shell-write root",
+      "required": "Output creation/removal works there; neighboring source/metadata stays protected. Missing root is rejected, not silently created",
+      "source": "docs/SAFETY_TESTS.md",
+      "status": "PASS",
+      "evidence": [
+        "tests/unit/metadata-policy.test.ts",
+        "docs/evidence/linux-support/verify.txt"
+      ]
+    },
+    {
+      "id": "S14",
+      "scenario": "Broad workspace shell-write with protected paths absent",
+      "required": "Enforcement blocks creation/replacement of the protected paths, or the policy is rejected before launch. No placeholder files appear in the real repo",
+      "source": "docs/SAFETY_TESTS.md",
+      "status": "PASS",
+      "evidence": [
+        "tests/unit/metadata-policy.test.ts",
+        "docs/evidence/linux-support/verify.txt"
+      ]
+    },
+    {
+      "id": "S15",
+      "scenario": "Write, delete, or rename existing `.git`, `.codex`, `.agents`, `.pi`, `.pi-spoke`, and project instruction fixtures",
+      "required": "Denied for guarded mutations and shell grants that advertise protection; test ancestor replacement as well as direct access",
+      "source": "docs/SAFETY_TESTS.md",
+      "status": "PASS",
+      "evidence": [
+        "tests/sandbox/security-matrix.test.ts",
+        "docs/evidence/linux-support/verify.txt"
+      ]
+    },
+    {
+      "id": "S16",
+      "scenario": "Worktree `.git` file points to metadata/common directory outside `cwd`",
+      "required": "Visible pointer and resolved targets protected; metadata discovery runs no repository hook or custom command",
+      "source": "docs/SAFETY_TESTS.md",
+      "status": "PASS",
+      "evidence": [
+        "tests/sandbox/security-matrix.test.ts",
+        "tests/unit/metadata-policy.test.ts",
+        "docs/evidence/linux-support/verify.txt"
+      ]
+    },
+    {
+      "id": "S17",
+      "scenario": "Modify selected skill, operator config, installed helper, auth/model file, or saved state",
+      "required": "Denied. Improvement proposals and suggested skills do not unlock protected resources",
+      "source": "docs/SAFETY_TESTS.md",
+      "status": "PASS",
+      "evidence": [
+        "tests/sandbox/security-matrix.test.ts",
+        "tests/sandbox/skills.test.ts",
+        "tests/unit/policy.test.ts",
+        "docs/evidence/linux-support/verify.txt"
+      ]
+    },
+    {
+      "id": "S18",
+      "scenario": "Traversal, sibling-prefix confusion, trailing slash, Unicode names, and macOS canonical aliases",
+      "required": "Correct roots used; no string-prefix escape; valid in-root paths continue to work",
+      "source": "docs/SAFETY_TESTS.md",
+      "status": "PASS",
+      "evidence": [
+        "tests/integration/service.test.ts",
+        "tests/sandbox/security-matrix.test.ts",
+        "tests/unit/policy.test.ts",
+        "docs/evidence/linux-support/verify.txt"
+      ]
+    },
+    {
+      "id": "S19",
+      "scenario": "Existing and newly introduced symlinks point from allowed paths to protected/outside paths",
+      "required": "No out-of-scope write/read through aliases; structured mutation rejects unsafe symlink components",
+      "source": "docs/SAFETY_TESTS.md",
+      "status": "PASS",
+      "evidence": [
+        "tests/sandbox/race.test.ts",
+        "tests/sandbox/security-matrix.test.ts",
+        "docs/evidence/linux-support/verify.txt"
+      ]
+    },
+    {
+      "id": "S20",
+      "scenario": "Hard-link/mount alias would expose protected/out-of-root inode under a writable path",
+      "required": "Mutation denied or unsafe topology rejected; mandatory scratch-only source protection must still be demonstrable",
+      "source": "docs/SAFETY_TESTS.md",
+      "status": "PASS",
+      "evidence": [
+        "tests/sandbox/p0.test.ts",
+        "tests/sandbox/security-matrix.test.ts",
+        "tests/unit/topology.test.ts",
+        "docs/evidence/linux-support/verify.txt",
+        "docs/evidence/linux-support/volume.json"
+      ]
+    },
+    {
+      "id": "S21",
+      "scenario": "Swap a target/ancestor during a structured operation; overlap pi-spoke edits",
+      "required": "Identity/conflict detection or OS root restriction prevents an out-of-scope mutation; report limitations for hostile external races, never false atomicity",
+      "source": "docs/SAFETY_TESTS.md",
+      "status": "PASS",
+      "evidence": [
+        "tests/sandbox/race.test.ts",
+        "docs/evidence/linux-support/verify.txt"
+      ]
+    },
+    {
+      "id": "S22",
+      "scenario": "Nested and newly named protected metadata/instruction targets below normal scan depth",
+      "required": "Structured guard rejects at operation time; shell policy either enforces the claimed exclusions or is rejected as unsupported",
+      "source": "docs/SAFETY_TESTS.md",
+      "status": "PASS",
+      "evidence": [
+        "tests/sandbox/security-matrix.test.ts",
+        "tests/unit/metadata-policy.test.ts",
+        "docs/evidence/linux-support/verify.txt"
+      ]
+    },
+    {
+      "id": "S23",
+      "scenario": "Read fake secrets after re-allowing a workspace inside a broader denied home root",
+      "required": "Nested credential/state deny remains effective; rename-to-read bypass is blocked; selected normal source/skills remain readable",
+      "source": "docs/SAFETY_TESTS.md",
+      "status": "PASS",
+      "evidence": [
+        "tests/sandbox/p0.test.ts",
+        "tests/sandbox/skills.test.ts",
+        "docs/evidence/linux-support/verify.txt"
+      ]
+    },
+    {
+      "id": "S24",
+      "scenario": "Tool environment/descriptor inspection",
+      "required": "No provider key, auth cookie, preload/startup injection variable, SSH-agent socket, or supervisor control descriptor is inherited",
+      "source": "docs/SAFETY_TESTS.md",
+      "status": "PASS",
+      "evidence": [
+        "tests/sandbox/security-matrix.test.ts",
+        "docs/evidence/linux-support/verify.txt"
+      ]
+    },
+    {
+      "id": "S25",
+      "scenario": "Shell/helper network through direct IPv4/IPv6, proxy variables, loopback, DNS paths, or bind/listen",
+      "required": "Denied as specified; no successful connection to controlled listeners; trusted Pi fake-provider call still works separately",
+      "source": "docs/SAFETY_TESTS.md",
+      "status": "PASS",
+      "evidence": [
+        "tests/sandbox/dns.test.ts",
+        "tests/sandbox/p0.test.ts",
+        "docs/evidence/linux-support/verify.txt"
+      ]
+    },
+    {
+      "id": "S26",
+      "scenario": "Unix sockets, Docker/agent socket fixtures, and macOS Apple Events/Launch Services",
+      "required": "No access to privileged host services; required missing controls cause failure before execution, not warning-only downgrade",
+      "source": "docs/SAFETY_TESTS.md",
+      "status": "PASS",
+      "evidence": [
+        "tests/sandbox/p0.test.ts",
+        "docs/evidence/linux-support/verify.txt"
+      ],
+      "scope": "Unix sockets denied on Linux; Apple Events and Launch Services not applicable on Linux."
+    },
+    {
+      "id": "S27",
+      "scenario": "Missing/invalid SRT config, missing binary, unavailable namespace, or required seccomp failure",
+      "required": "`SANDBOX_UNAVAILABLE`, `SANDBOX_SETUP_FAILED`, or `SANDBOX_POLICY_UNSUPPORTED`; never raw execution or implicit backend defaults",
+      "source": "docs/SAFETY_TESTS.md",
+      "status": "PASS",
+      "evidence": [
+        "tests/integration/helpers.test.ts",
+        "tests/sandbox/race.test.ts",
+        "docs/evidence/linux-support/verify.txt"
+      ]
+    },
+    {
+      "id": "S28",
+      "scenario": "Two simultaneous invocations with different roots; shell and writer run concurrently",
+      "required": "Separate launcher configuration and policy hash; neither receives the other's writable roots, proxy state, or credentials",
+      "source": "docs/SAFETY_TESTS.md",
+      "status": "PASS",
+      "evidence": [
+        "tests/sandbox/p0.test.ts",
+        "docs/evidence/linux-support/verify.txt"
+      ]
+    },
+    {
+      "id": "S29",
+      "scenario": "Attempt alternate stock Pi callbacks, search-tool executable substitution, or helper command/module injection",
+      "required": "All active definitions use guarded paths; trusted absolute binaries; fixed helper payload is treated as data",
+      "source": "docs/SAFETY_TESTS.md",
+      "status": "PASS",
+      "evidence": [
+        "tests/contract/pi.test.ts",
+        "tests/integration/helpers.test.ts",
+        "tests/sandbox/supervised-tools.test.ts",
+        "docs/evidence/linux-support/verify.txt"
+      ]
+    },
+    {
+      "id": "S30",
+      "scenario": "Invalid policy, path alias, or operator revocation on continuation",
+      "required": "`POLICY_CHANGED` or specific permission/sandbox error; no inherited stale authority and no new grant from a reply/steer",
+      "source": "docs/SAFETY_TESTS.md",
+      "status": "PASS",
+      "evidence": [
+        "tests/integration/service.test.ts",
+        "tests/unit/policy.test.ts",
+        "docs/evidence/linux-support/verify.txt"
+      ]
+    },
+    {
+      "id": "S31",
+      "scenario": "File/shell operation denied, then retried via main reply or auto-retry machinery",
+      "required": "Existing grant remains unchanged; no automatic retry outside the sandbox or policy escalation",
+      "source": "docs/SAFETY_TESTS.md",
+      "status": "PASS",
+      "evidence": [
+        "tests/contract/communication.test.ts",
+        "tests/integration/service.test.ts",
+        "tests/sandbox/skills.test.ts",
+        "tests/unit/policy.test.ts",
+        "docs/evidence/linux-support/verify.txt"
+      ]
+    },
+    {
+      "id": "S32",
+      "scenario": "Cancel/host disconnect during shell, helper startup, subprocess, or double-fork/`setsid` fixture",
+      "required": "All descendants stay restricted; clean termination is verified or reported unconfirmed. No false `cancelled`/cleanup claim",
+      "source": "docs/SAFETY_TESTS.md",
+      "status": "PASS",
+      "evidence": [
+        "tests/integration/mcp-restart.test.ts",
+        "tests/sandbox/descendants.test.ts",
+        "tests/sandbox/mcp.test.ts",
+        "docs/evidence/linux-support/verify.txt"
+      ]
+    },
+    {
+      "id": "S33",
+      "scenario": "Crash after invocation acceptance or file mutation but before acknowledgment",
+      "required": "Invocation receipt survives; unknown side effect is not replayed; safe continuation requires policy and cleanup revalidation",
+      "source": "docs/SAFETY_TESTS.md",
+      "status": "PASS",
+      "evidence": [
+        "tests/integration/service.test.ts",
+        "tests/unit/policy.test.ts",
+        "docs/evidence/linux-support/verify.txt",
+        "docs/evidence/linux-support/volume.json"
+      ]
+    },
+    {
+      "id": "S34",
+      "scenario": "Ordinary command failure versus observed sandbox denial",
+      "required": "Typed error distinction is truthful; no every-error-is-sandbox-denied classifier; diagnostics contain no secrets",
+      "source": "docs/SAFETY_TESTS.md",
+      "status": "PASS",
+      "evidence": [
+        "tests/sandbox/p0.test.ts",
+        "docs/evidence/linux-support/verify.txt"
+      ]
+    },
+    {
+      "id": "S35",
+      "scenario": "Backend upgrade, changed binary, or altered policy compiler",
+      "required": "Cached capability proof invalidated; pinned compatibility and real-OS negative tests rerun before enabling execution",
+      "source": "docs/SAFETY_TESTS.md",
+      "status": "PASS",
+      "evidence": [
+        "tests/sandbox/upgrade.test.ts",
+        "tests/unit/qualification.test.ts",
+        "docs/evidence/linux-support/verify.txt"
+      ]
+    },
+    {
+      "id": "S36",
+      "scenario": "Version-1 permissive config or unsafe fallback/network/weaker flags in version 2",
+      "required": "Explicit migration/validation error; primary shipped example is enforced read-only and cannot authorize shell by omission",
+      "source": "docs/SAFETY_TESTS.md",
+      "status": "PASS",
+      "evidence": [
+        "examples/read-only.json",
+        "tests/integration/service.test.ts",
+        "tests/unit/policy.test.ts",
+        "docs/evidence/linux-support/verify.txt"
+      ]
+    }
+  ],
+  "release_gates": [
+    {
+      "id": "local-verification",
+      "status": "PASS",
+      "evidence": [
+        "verify.txt",
+        "final-preflight.txt"
+      ],
+      "tests_passed": 43,
+      "tests_skipped": 1,
+      "skip_reason": "macOS Launch Services is not applicable on Linux"
+    },
+    {
+      "id": "physical-disk-full",
+      "status": "PASS",
+      "evidence": [
+        "volume.json"
+      ]
+    },
+    {
+      "id": "live-two-providers-and-vision",
+      "status": "BLOCKED",
+      "reason": "Auto-review rejected credential transfer and provider calls; explicit authorization pending."
+    },
+    {
+      "id": "manual-codex",
+      "status": "NOT RUN",
+      "reason": "Actual Codex host evidence is macOS-only; Linux public MCP contract tested separately."
+    }
+  ]
+}

@@ -55,3 +55,12 @@ fixtures. Bubblewrap itself passed a primitive launch/network-namespace probe.
 Linux remains unsupported; the existing release qualification is macOS-only.
 [Linux results](evidence/linux-orbstack/summary.json). The VM is stopped and
 retained as `pi-spoke-linux-test`; no live-provider credentials were copied.
+
+## Linux follow-up scope
+
+The macOS release decision above is unchanged. Linux execution support now has
+its own [66-case ledger](evidence/linux-support/acceptance.json), full local
+verification and disposable mounted-volume evidence. Its live-provider gate is
+blocked pending authorization for temporary credential transfer, and the Linux
+Codex host exercise is unrun. Do not use the macOS `release:check` result as a
+Linux release decision. No package or release has been published.

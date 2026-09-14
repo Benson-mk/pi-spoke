@@ -1,0 +1,13 @@
+
+> pi-spoke@0.1.0 build
+> tsc -p tsconfig.json && node scripts/build-native.mjs
+
+
+ RUN  v4.1.11 /Users/benson/Documents/code/pi-spoke
+
+
+ Test Files  2 passed (2)
+      Tests  2 passed (2)
+   Start at  11:48:44
+   Duration  3.85s (transform 78ms, setup 0ms, import 243ms, tests 5.20s, environment 0ms)
+

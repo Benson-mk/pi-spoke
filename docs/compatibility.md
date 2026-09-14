@@ -1,7 +1,7 @@
 # Compatibility evidence
 
 Verification date: 2026-09-14. P0–P5 gates passed for the exact macOS host and pinned identities below.
-The source is release-ready but unpublished; Linux was tested in an OrbStack VM and remains unsupported.
+The source is release-ready but unpublished; Linux execution is implemented for the pinned OrbStack host; its separate external release gates remain unrun.
 
 | Component | Exact installed version | Registry revision |
 |---|---|---|
@@ -117,7 +117,7 @@ provider measurements, not live model performance or a lightweight-memory claim.
 The tested execution slice is this exact macOS/arm64 identity, source-read-only
 shell with private scratch, and independently authorized fixed file edits.
 Project shell-write roots, including an existing build-output directory, fail
-with `SANDBOX_POLICY_UNSUPPORTED`. Linux execution fails before tool launch.
+with `SANDBOX_POLICY_UNSUPPORTED`. Linux execution requires the separate exact identities described below.
 No-tool runs report their no-execution mode rather than implying sandbox use.
 
 The supervisor, Pi provider client, operator configuration, credential-command
@@ -154,7 +154,7 @@ The subsequently selected `iFiy/spark-x2.5-4b` passed sandboxed read and native
 continuation with confirmed cleanup: [Spark results](evidence/live-spark-macos.json).
 It is a verified tool-capable alternative to the failing Llama configuration,
 using the same gateway integration.
-Linux was tested in an OrbStack VM and is not qualified. An enclosing Codex
+Linux was initially tested before its adapter existed; see the subsequent support evidence below. An enclosing Codex
 sandbox blocks SRT socket creation; run disposable canaries on an authorized
 host boundary. That setup failure is not successful containment.
 
@@ -175,6 +175,36 @@ Linux verification was subsequently run against commit `2e3523c` in an isolated
 Ubuntu 24.04.5 arm64 OrbStack VM: build/typecheck/install and 28 non-sandbox
 tests passed; all 16 sandbox tests failed on the macOS-specific adapter and
 fixtures. Bubblewrap itself passed a primitive launch/network-namespace probe.
-Linux remains unsupported; the existing release qualification is macOS-only.
-[Linux results](evidence/linux-orbstack/summary.json). The VM is stopped and
-retained as `pi-spoke-linux-test`; no live-provider credentials were copied.
+That historical failure led to the Linux adapter below. The existing release
+qualification remains macOS-only. [Initial Linux results](evidence/linux-orbstack/summary.json).
+
+
+## Linux execution support
+
+The supported execution identity is Ubuntu 24.04.5 arm64 in the isolated
+`pi-spoke-linux-test` OrbStack VM, kernel
+`7.0.14-orbstack-00380-ga7e0a2dc9535`, Node 24.15.0, bubblewrap 0.9.0 and
+ripgrep 14.1.0. Exact binary hashes, including Bash, socat, SRT's seccomp helper
+and the compiled network filter, are in `src/sandbox/qualification-pins.ts`.
+Different kernels, architectures or binaries fail closed until requalified.
+This is not a general Ubuntu or x86-64 compatibility claim.
+
+SRT's Linux wrapper provides filesystem, PID and network namespaces. A raw
+namespace alone permitted a TCP listener inside the isolated namespace. The
+adapter therefore installs an additional mandatory seccomp filter before any
+untrusted command: socket creation, connection, binding, messaging and io_uring
+creation are denied. The filter is inherited across exec and descendants;
+ABI mismatches are fatal. Missing or modified filters are rejected before
+launch. SRT remains mandatory, with no unrestricted fallback.
+
+Linux read-only mounts can return EROFS, hidden paths ENOENT and cross-mount
+hard links EXDEV. Tests check actual unchanged canaries and positive scratch
+controls, rather than requiring macOS errno values. The descendant fixture
+verifies its PID namespace disappears. Arbitrary shell runs still report
+unconfirmed cleanup; this one fixture does not justify stronger general claims.
+
+[Linux acceptance](evidence/linux-support/acceptance.json) retains all 66 cases
+and separate release gates. Apple Events and Launch Services are macOS-only;
+Linux Unix-socket denial is exercised. Live integrations and a Linux Codex host
+exercise are not passed by fake-provider MCP tests. Existing macOS qualification
+must not be interpreted as Linux release readiness.

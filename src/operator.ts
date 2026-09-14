@@ -17,13 +17,13 @@ export async function doctor(config: OperatorConfig, instance: string) {
   const lock = await readFile(join(directory, 'instance.lock', 'owner.json'), 'utf8').then(() => 'present', () => 'absent_or_unreadable');
   return { version: '0.1.0', node: process.version, platform: platform(), architecture: arch(), configuration_version: 2,
     instance, state_present: await access(directory).then(() => true, () => false), ownership_lock: lock,
-    backend: 'srt', backend_version: '0.0.76', backend_binary_present: platform() === 'darwin' && await access('/usr/bin/sandbox-exec').then(() => true, () => false),
+    backend: 'srt', backend_version: '0.0.76', backend_binary_present: ['darwin', 'linux'].includes(platform()) && await access(platform() === 'linux' ? '/usr/bin/bwrap' : '/usr/bin/sandbox-exec').then(() => true, () => false),
     sandbox_check: 'NOT RUN; use --sandbox-check', release_ready: null, release_assessment: 'Not assessed by doctor; see the release acceptance ledger',
-    limitations: ['macOS adapter only; exact qualified identities required', 'arbitrary shell descendant cleanup unconfirmed', 'project shell-write roots rejected'],
+    limitations: ['macOS/Linux adapters; exact qualified identities required', 'arbitrary shell descendant cleanup unconfirmed', 'project shell-write roots rejected'],
     live_provider_tests: 'NOT RUN; explicitly opt-in' };
 }
 export async function sandboxCheck(runtimeRoot: string) {
-  if (platform() !== 'darwin') fail('SANDBOX_UNAVAILABLE', 'This adapter requires the qualified macOS host');
+  if (!['darwin', 'linux'].includes(platform())) fail('SANDBOX_UNAVAILABLE', 'This adapter requires a qualified macOS or Linux host');
   const root = await mkdtemp('/private/tmp/ps-doctor-'), cwd = join(root, 'workspace'); await mkdir(cwd);
   const config: OperatorConfig = { version: 2, state_dir: join(root, 'state'), scratch_dir: join(root, 'scratch'), workspace_roots: [cwd], allowed_tools: ['read'],
     permissions: { file_write_roots: [], shell_write_roots: [] }, skill_roots: [], project_skills: false,

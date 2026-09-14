@@ -147,3 +147,21 @@ All required release gates now pass for the pinned macOS host. The explicitly
 authorized OpenRouter retry passed read and continuation; earlier failures are
 retained as history. Plain doctor reports release_ready as null because it
 does not execute the release audit; use `npm run release:check` for that ledger.
+
+
+## Linux setup
+
+Linux tool execution supports the exact OrbStack arm64 identity in
+[compatibility](compatibility.md#linux-execution-support). Install Node 24.15.0,
+`bubblewrap`, `socat`, `ripgrep`, and `build-essential` in the VM, then run
+`npm ci --ignore-scripts` and `npm run build`. The build compiles the mandatory
+native seccomp filter using `/usr/bin/cc`; build or qualification failure must
+not be bypassed. Use the existing configuration examples with Linux absolute
+paths and separate private state/scratch directories. No host filesystem sharing
+is required. Start the same `node dist/cli.js` MCP entry point.
+
+The current test fixtures require a writable `/private/tmp` directory on Linux.
+`npm run verify` uses fake providers; it does not need live credentials.
+`scripts/linux-volume-canary.mjs` requires root in a disposable VM and mounts
+only its newly created 16 MiB tmpfs fixture. Do not run destructive canaries
+against existing mounts. Live checks remain explicitly opt-in.

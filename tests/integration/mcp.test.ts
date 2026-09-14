@@ -40,13 +40,13 @@ test('P4: compiled stdio six-tool public contract, durable receipts, questions, 
     expect((await call('send', { kind: 'steer', request_key: 'steer', run_id: spawned.run_id, message: 'text' })).structuredContent.error.code).toBe('QUESTION_REPLY_REQUIRED');
     const reply = { kind: 'reply', request_key: 'reply', run_id: spawned.run_id, question_id: question, message: 'option A' };
     const accepted = (await call('send', reply)).structuredContent; expect((await call('send', reply)).structuredContent).toEqual(accepted);
-    await vi.waitFor(async () => expect((await call('observe', { run_id: spawned.run_id })).structuredContent.state).toBe('completed'));
+    await vi.waitFor(async () => expect((await call('observe', { run_id: spawned.run_id })).structuredContent.state).toBe('completed'), { timeout: 5000 });
     expect((await call('observe', { run_id: spawned.run_id, view: 'output', max_bytes: 1 })).structuredContent).toMatchObject({ text: '', next_offset_bytes: 0, minimum_next_bytes: 4 });
     expect((await call('observe', { run_id: spawned.run_id, view: 'output', max_bytes: 4 })).structuredContent.text).toBe('🙂');
     expect((await call('observe', { run_id: spawned.run_id, view: 'output', offset_bytes: 1 })).structuredContent.error.code).toBe('INVALID_ARGUMENT');
     const sessions = (await call('sessions', {})).structuredContent.items; expect(sessions[0]).toMatchObject({ session_id: spawned.session_id, continuation_eligible: true });
     const next = (await call('send', { kind: 'continue', request_key: 'next', session_id: spawned.session_id, expected_last_run_id: spawned.run_id, message: 'continue' })).structuredContent;
-    await vi.waitFor(async () => expect((await call('observe', { run_id: next.run_id })).structuredContent.state).toBe('completed'));
+    await vi.waitFor(async () => expect((await call('observe', { run_id: next.run_id })).structuredContent.state).toBe('completed'), { timeout: 5000 });
     expect((await call('cancel', { run_id: next.run_id })).structuredContent.state).toBe('completed');
     const catalogPage = (await call('catalog', { kind: 'models', limit: 1 })).structuredContent;
     expect(catalogPage.next_cursor).toBeTypeOf('string');

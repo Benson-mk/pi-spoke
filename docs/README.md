@@ -1,6 +1,6 @@
 # Project documentation
 
-pi-spoke is a local delegation and communication layer between a main agent and independent Pi workers. This repository contains specification 1.1 and an unpublished, release-qualified implementation of application 0.1.0 on the pinned macOS host. Release readiness is tracked with observed evidence; qualification is scoped to recorded host/toolchain identities.
+pi-spoke is a local delegation and communication layer between a main agent and independent Pi workers. This repository contains specification 1.1 and an unpublished, release-qualified implementation of application 0.1.0 on the pinned macOS host. Release readiness is tracked with observed evidence; qualification is scoped to recorded host/toolchain identities. Linux execution is implemented for the pinned OrbStack VM; its external release gates remain pending.
 
 | Read when you need… | Document |
 |---|---|

@@ -1,0 +1,169 @@
+
+> pi-spoke@0.1.0 verify
+> npm run typecheck && npm test && npm run test:contract && npm run test:integration && npm run test:sandbox && npm run build
+
+
+> pi-spoke@0.1.0 typecheck
+> tsc -p tsconfig.tests.json
+
+
+> pi-spoke@0.1.0 test
+> vitest run tests/unit
+
+
+ RUN  v4.1.11 /home/benson/pi-spoke
+
+ ✓ tests/unit/metadata-policy.test.ts (1 test) 15ms
+ ✓ tests/unit/policy.test.ts (1 test) 14ms
+ ✓ tests/unit/topology.test.ts (1 test) 4ms
+ ✓ tests/unit/qualification.test.ts (1 test) 2ms
+ ✓ tests/unit/redaction.test.ts (1 test) 1ms
+
+ Test Files  5 passed (5)
+      Tests  5 passed (5)
+   Start at  11:47:44
+   Duration  368ms (transform 50ms, setup 0ms, import 116ms, tests 37ms, environment 0ms)
+
+
+> pi-spoke@0.1.0 test:contract
+> npm run build && vitest run tests/contract
+
+
+> pi-spoke@0.1.0 build
+> tsc -p tsconfig.json && node scripts/build-native.mjs
+
+
+ RUN  v4.1.11 /home/benson/pi-spoke
+
+ ✓ tests/contract/lifecycle.test.ts (1 test) 2120ms
+   ✓ P5 A15/A16/A27: real child crash, provider choice, question cancellation and run limits stay isolated  2119ms
+ ✓ tests/contract/admission.test.ts (2 tests) 975ms
+   ✓ P2: image admission snapshots, model rejection and changed project context on continuation  420ms
+   ✓ P2: cancellation aborts an actual provider request while a sibling completes  554ms
+ ✓ tests/contract/supervised.test.ts (1 test) 794ms
+   ✓ real supervised Pi over local HTTP: no-tool handshake, native checkpoint and explicit continuation  794ms
+ ✓ tests/contract/communication.test.ts (1 test) 499ms
+   ✓ P3: real worker persists notes, waits for a correlated reply, and records an improvement without applying it  499ms
+ ✓ tests/contract/skills.test.ts (1 test) 18ms
+ ✓ tests/contract/pi.test.ts (1 test) 27ms
+ ✓ tests/contract/checkpoints.test.ts (1 test) 13ms
+
+ Test Files  7 passed (7)
+      Tests  8 passed (8)
+   Start at  11:47:47
+   Duration  6.76s (transform 97ms, setup 0ms, import 1.99s, tests 4.45s, environment 0ms)
+
+
+> pi-spoke@0.1.0 test:integration
+> npm run build && vitest run tests/integration
+
+
+> pi-spoke@0.1.0 build
+> tsc -p tsconfig.json && node scripts/build-native.mjs
+
+
+ RUN  v4.1.11 /home/benson/pi-spoke
+
+ ✓ tests/integration/mcp.test.ts (1 test) 1297ms
+   ✓ P4: compiled stdio six-tool public contract, durable receipts, questions, continuation, output and strict errors  1296ms
+ ✓ tests/integration/helpers.test.ts (2 tests) 2868ms
+   ✓ fixed helper validates typed operations, protected paths, aliases and destructive authorized writes  2661ms
+ ✓ tests/integration/mcp-restart.test.ts (1 test) 2040ms
+   ✓ A17/A18/S32: actual supervisor death aborts its worker, retains receipts, and allows only explicit safe-session continuation  2040ms
+ ✓ tests/integration/service.test.ts (10 tests) 1224ms
+ ✓ tests/integration/operator.test.ts (1 test) 684ms
+   ✓ P4: doctor is read-oriented; recovery refuses live recorded processes; GC preserves receipt tombstones  683ms
+
+ Test Files  5 passed (5)
+      Tests  15 passed (15)
+   Start at  11:47:56
+   Duration  8.89s (transform 93ms, setup 0ms, import 520ms, tests 8.11s, environment 0ms)
+
+
+> pi-spoke@0.1.0 test:sandbox
+> npm run build && vitest run tests/sandbox
+
+
+> pi-spoke@0.1.0 build
+> tsc -p tsconfig.json && node scripts/build-native.mjs
+
+
+ RUN  v4.1.11 /home/benson/pi-spoke
+
+stdout | tests/sandbox/security-matrix.test.ts > P5 S05–S10/S15–S19/S22/S24: production helper and shell containment against disposable metadata, aliases, environment and source canaries
+{"cases":"S05-S10,S15-S19,S22,S24","policy_hash":"a2b4100c9a488d4b5cf4a8a5f7911eed2dfb8d37fc98205700dfb111ace1aa9b","source_before_after_sha256":"41cf6794ba4200b839c53531555f0f3998df4cbb01a4d5cb0b94e3ca5e23947d","outside_before_after_sha256":"31207a2065f46a5b948fce6fe5c13e85abaf5631e2f894b47dcd4fce14f6c57b","cleanup":"unconfirmed for arbitrary shell"}
+
+ ✓ tests/sandbox/security-matrix.test.ts (1 test) 6832ms
+   ✓ P5 S05–S10/S15–S19/S22/S24: production helper and shell containment against disposable metadata, aliases, environment and source canaries  6831ms
+ ✓ tests/sandbox/live-gate.test.ts (1 test) 6000ms
+   ✓ live harness requires actual read results and continuation; shared provider remains partial  5999ms
+ ✓ tests/sandbox/supervised-tools.test.ts (1 test) 3451ms
+   ✓ real Pi worker uses guarded read/search/write/edit through actual SRT; shell authority stays separate  3450ms
+ ✓ tests/sandbox/skills.test.ts (1 test) 2726ms
+   ✓ P3: two optional skills remain unread; selected external resources are sandbox-readable and immutable  2725ms
+ ✓ tests/sandbox/mcp.test.ts (1 test) 2627ms
+   ✓ P5 public MCP: guarded file execution and honest shell cancellation with a healthy sibling  2627ms
+stdout | tests/sandbox/p0.test.ts > P0 S04–S08/S11/S12: real source protection with permitted scratch and separate writer envelope
+{"platform":"linux","arch":"arm64","os":"7.0.14-orbstack-00380-ga7e0a2dc9535","code":0,"stdout":"{\"unlink\":\"EROFS\",\"truncate\":\"EROFS\",\"outside\":\"EROFS\",\"unrelated\":\"EROFS\",\"scratch\":\"allowed\"}\n","stderr":"","policyHash":"9a9cbce6852912fdb01d44d97f36b7ec4460f9d0a8de677e1f7b056bfb1fda5f","defaultWritePaths":["/dev/stdout","/dev/stderr","/dev/null","/dev/tty","/dev/dtracehelper","/dev/autofs_nowait","/tmp/claude","/private/tmp/claude","/private/tmp/ps-s2Jb09/home/.npm/_logs","/private/tmp/ps-s2Jb09/home/.claude/debug"],"wrapper":"/bin/bash","launcherPid":12607,"cleanup":"wrapper-exited-descendants-unverified","lockHash":"27101405527f2152175bf4c3eb42d31d23527b7beb490372a01f5d05367ee16f","sourceHash":"5eeacb2dfe8a8c673fb8df74de7f66d041e21952d334fcc9a085a06b7f8dd8ca","outsideHash":"5737c78207a56d81e0c5a6efe0bf1ee178d2dc5b2682bce2f8010c00e266c1ff"}
+
+stdout | tests/sandbox/p0.test.ts > P0 S04–S08/S11/S12: real source protection with permitted scratch and separate writer envelope
+{"platform":"linux","arch":"arm64","os":"7.0.14-orbstack-00380-ga7e0a2dc9535","code":1,"stdout":"","stderr":"/bin/rm: cannot remove '/private/tmp/ps-s2Jb09/project/source.txt': Read-only file system\n/bin/bash: line 1: /private/tmp/ps-s2Jb09/project/source.txt: Read-only file system\n","policyHash":"9a9cbce6852912fdb01d44d97f36b7ec4460f9d0a8de677e1f7b056bfb1fda5f","defaultWritePaths":["/dev/stdout","/dev/stderr","/dev/null","/dev/tty","/dev/dtracehelper","/dev/autofs_nowait","/tmp/claude","/private/tmp/claude","/private/tmp/ps-s2Jb09/home/.npm/_logs","/private/tmp/ps-s2Jb09/home/.claude/debug"],"wrapper":"/bin/bash","launcherPid":12646,"cleanup":"wrapper-exited-descendants-unverified","lockHash":"27101405527f2152175bf4c3eb42d31d23527b7beb490372a01f5d05367ee16f","sourceHash":"5eeacb2dfe8a8c673fb8df74de7f66d041e21952d334fcc9a085a06b7f8dd8ca","outsideHash":"5737c78207a56d81e0c5a6efe0bf1ee178d2dc5b2682bce2f8010c00e266c1ff"}
+
+stdout | tests/sandbox/p0.test.ts > P0 S04–S08/S11/S12: real source protection with permitted scratch and separate writer envelope
+{"platform":"linux","arch":"arm64","os":"7.0.14-orbstack-00380-ga7e0a2dc9535","code":0,"stdout":"{\"written\":true}\n","stderr":"","policyHash":"20ae647bd26bb38a5e88848cab1f712b000d544cb189806e524b7f26b44d74bb","defaultWritePaths":["/dev/stdout","/dev/stderr","/dev/null","/dev/tty","/dev/dtracehelper","/dev/autofs_nowait","/tmp/claude","/private/tmp/claude","/private/tmp/ps-s2Jb09/home/.npm/_logs","/private/tmp/ps-s2Jb09/home/.claude/debug"],"wrapper":"/bin/bash","launcherPid":12680,"cleanup":"wrapper-exited-descendants-unverified","lockHash":"27101405527f2152175bf4c3eb42d31d23527b7beb490372a01f5d05367ee16f","sourceHash":"04dd9c7e9464019a848b69db2ed9a9b2a7def45b169e44627e7e613d67ff18ce","outsideHash":"5737c78207a56d81e0c5a6efe0bf1ee178d2dc5b2682bce2f8010c00e266c1ff"}
+
+stdout | tests/sandbox/p0.test.ts > P0 S04–S08/S11/S12: real source protection with permitted scratch and separate writer envelope
+{"platform":"linux","arch":"arm64","os":"7.0.14-orbstack-00380-ga7e0a2dc9535","code":0,"stdout":"{\"content\":[{\"type\":\"text\",\"text\":\"Successfully replaced 1 block(s) in /private/tmp/ps-s2Jb09/project/source.txt.\"}],\"details\":{\"diff\":\"-1 authorized\\n+1 edited\",\"patch\":\"--- /private/tmp/ps-s2Jb09/project/source.txt\\n+++ /private/tmp/ps-s2Jb09/project/source.txt\\n@@ -1,1 +1,1 @@\\n-authorized\\n\\\\ No newline at end of file\\n+edited\\n\\\\ No newline at end of file\\n\",\"firstChangedLine\":1}}\n","stderr":"","policyHash":"20ae647bd26bb38a5e88848cab1f712b000d544cb189806e524b7f26b44d74bb","defaultWritePaths":["/dev/stdout","/dev/stderr","/dev/null","/dev/tty","/dev/dtracehelper","/dev/autofs_nowait","/tmp/claude","/private/tmp/claude","/private/tmp/ps-s2Jb09/home/.npm/_logs","/private/tmp/ps-s2Jb09/home/.claude/debug"],"wrapper":"/bin/bash","launcherPid":12724,"cleanup":"wrapper-exited-descendants-unverified","lockHash":"27101405527f2152175bf4c3eb42d31d23527b7beb490372a01f5d05367ee16f","sourceHash":"1fb9f4097256db2d7b1e13aff79cee44339891a31c556b9cf6093885773b3618","outsideHash":"5737c78207a56d81e0c5a6efe0bf1ee178d2dc5b2682bce2f8010c00e266c1ff"}
+
+stdout | tests/sandbox/p0.test.ts > P0 S20: investigate writable hard-link alias to read-only source
+{"platform":"linux","arch":"arm64","os":"7.0.14-orbstack-00380-ga7e0a2dc9535","code":0,"stdout":"EXDEV\n","stderr":"","policyHash":"703a48542841342af5ae7e97e91814298c46e7b13ed96c04fd766a893f3dccaf","defaultWritePaths":["/dev/stdout","/dev/stderr","/dev/null","/dev/tty","/dev/dtracehelper","/dev/autofs_nowait","/tmp/claude","/private/tmp/claude","/private/tmp/ps-K0TDML/home/.npm/_logs","/private/tmp/ps-K0TDML/home/.claude/debug"],"wrapper":"/bin/bash","launcherPid":12768,"cleanup":"wrapper-exited-descendants-unverified","lockHash":"27101405527f2152175bf4c3eb42d31d23527b7beb490372a01f5d05367ee16f","sourceHash":"5eeacb2dfe8a8c673fb8df74de7f66d041e21952d334fcc9a085a06b7f8dd8ca","outsideHash":"5737c78207a56d81e0c5a6efe0bf1ee178d2dc5b2682bce2f8010c00e266c1ff"}
+
+stdout | tests/sandbox/p0.test.ts > P0 S20: investigate writable hard-link alias to read-only source
+{"case":"S20-dynamic","result":{"code":0,"stdout":"EXDEV\n","stderr":"","policyHash":"703a48542841342af5ae7e97e91814298c46e7b13ed96c04fd766a893f3dccaf","defaultWritePaths":["/dev/stdout","/dev/stderr","/dev/null","/dev/tty","/dev/dtracehelper","/dev/autofs_nowait","/tmp/claude","/private/tmp/claude","/private/tmp/ps-K0TDML/home/.npm/_logs","/private/tmp/ps-K0TDML/home/.claude/debug"],"wrapper":"/bin/bash","launcherPid":12768,"cleanup":"wrapper-exited-descendants-unverified"},"after":"source canary"}
+
+stdout | tests/sandbox/p0.test.ts > P0 S14/S23: missing protected targets and nested read denies survive workspace reopening
+{"platform":"linux","arch":"arm64","os":"7.0.14-orbstack-00380-ga7e0a2dc9535","code":0,"stdout":"{\"source\":\"source canary\",\"secret\":\"ENOENT\",\"renameSecret\":\"EBUSY\",\"missing\":\"EEXIST\",\"ordinary\":\"allowed\"}\n","stderr":"","policyHash":"9a34c962f69e079e93653d8330366270c544e33f33c4f7376c49610b1cd7ccd7","defaultWritePaths":["/dev/stdout","/dev/stderr","/dev/null","/dev/tty","/dev/dtracehelper","/dev/autofs_nowait","/tmp/claude","/private/tmp/claude","/private/tmp/ps-I1CkOV/home/.npm/_logs","/private/tmp/ps-I1CkOV/home/.claude/debug"],"wrapper":"/bin/bash","launcherPid":12807,"cleanup":"wrapper-exited-descendants-unverified","lockHash":"27101405527f2152175bf4c3eb42d31d23527b7beb490372a01f5d05367ee16f","sourceHash":"5eeacb2dfe8a8c673fb8df74de7f66d041e21952d334fcc9a085a06b7f8dd8ca","outsideHash":"5737c78207a56d81e0c5a6efe0bf1ee178d2dc5b2682bce2f8010c00e266c1ff"}
+
+stdout | tests/sandbox/p0.test.ts > P0 S25/S26: actual loopback IPv4/IPv6, listener and Unix socket denial
+{"platform":"linux","arch":"arm64","os":"7.0.14-orbstack-00380-ga7e0a2dc9535","code":0,"stdout":"{\"ipv4\":\"EPERM\",\"ipv6\":\"EPERM\",\"listen\":\"EPERM\",\"unix\":\"EPERM\"}\n","stderr":"","policyHash":"64e1f52b6d645b8fa5902af249729daf1cb4293eaff26c20dae7b1fc99655ce1","defaultWritePaths":["/dev/stdout","/dev/stderr","/dev/null","/dev/tty","/dev/dtracehelper","/dev/autofs_nowait","/tmp/claude","/private/tmp/claude","/private/tmp/ps-nxdBPT/home/.npm/_logs","/private/tmp/ps-nxdBPT/home/.claude/debug"],"wrapper":"/bin/bash","launcherPid":12846,"cleanup":"wrapper-exited-descendants-unverified","lockHash":"27101405527f2152175bf4c3eb42d31d23527b7beb490372a01f5d05367ee16f","sourceHash":"5eeacb2dfe8a8c673fb8df74de7f66d041e21952d334fcc9a085a06b7f8dd8ca","outsideHash":"5737c78207a56d81e0c5a6efe0bf1ee178d2dc5b2682bce2f8010c00e266c1ff"}
+
+stdout | tests/sandbox/p0.test.ts > P0 S28: concurrent launcher policies do not leak writer authority
+{"platform":"linux","arch":"arm64","os":"7.0.14-orbstack-00380-ga7e0a2dc9535","code":0,"stdout":"","stderr":"","policyHash":"e57c5c7d973f545cb7b0513833bf08a0f35da9706596d9a4d93facfc18ba765c","defaultWritePaths":["/dev/stdout","/dev/stderr","/dev/null","/dev/tty","/dev/dtracehelper","/dev/autofs_nowait","/tmp/claude","/private/tmp/claude","/private/tmp/ps-ySV0Ag/home/.npm/_logs","/private/tmp/ps-ySV0Ag/home/.claude/debug"],"wrapper":"/bin/bash","launcherPid":12885,"cleanup":"wrapper-exited-descendants-unverified","lockHash":"27101405527f2152175bf4c3eb42d31d23527b7beb490372a01f5d05367ee16f","sourceHash":"04dd9c7e9464019a848b69db2ed9a9b2a7def45b169e44627e7e613d67ff18ce","outsideHash":"5737c78207a56d81e0c5a6efe0bf1ee178d2dc5b2682bce2f8010c00e266c1ff"}
+
+stdout | tests/sandbox/p0.test.ts > P0 S28: concurrent launcher policies do not leak writer authority
+{"platform":"linux","arch":"arm64","os":"7.0.14-orbstack-00380-ga7e0a2dc9535","code":1,"stdout":"","stderr":"/bin/bash: line 1: /private/tmp/ps-ySV0Ag/project/source.txt: Read-only file system\n","policyHash":"124840c1983f65284625f3c9ffee2989446dfce77528a9255d833fd7daa3c8df","defaultWritePaths":["/dev/stdout","/dev/stderr","/dev/null","/dev/tty","/dev/dtracehelper","/dev/autofs_nowait","/tmp/claude","/private/tmp/claude","/private/tmp/ps-ySV0Ag/home/.npm/_logs","/private/tmp/ps-ySV0Ag/home/.claude/debug"],"wrapper":"/bin/bash","launcherPid":12886,"cleanup":"wrapper-exited-descendants-unverified","lockHash":"27101405527f2152175bf4c3eb42d31d23527b7beb490372a01f5d05367ee16f","sourceHash":"04dd9c7e9464019a848b69db2ed9a9b2a7def45b169e44627e7e613d67ff18ce","outsideHash":"5737c78207a56d81e0c5a6efe0bf1ee178d2dc5b2682bce2f8010c00e266c1ff"}
+
+stdout | tests/sandbox/p0.test.ts > P0 S27/S29: hostile wrapper text cannot write on the host; ordinary failures stay ordinary
+{"platform":"linux","arch":"arm64","os":"7.0.14-orbstack-00380-ga7e0a2dc9535","code":1,"stdout":"","stderr":"/bin/bash: line 1: /private/tmp/ps-9d85Le/outside.txt: Read-only file system\n","policyHash":"2b575da2dd0f758287cf60fe1a845d77110756b935eaee38f40a4caef4c6b726","defaultWritePaths":["/dev/stdout","/dev/stderr","/dev/null","/dev/tty","/dev/dtracehelper","/dev/autofs_nowait","/tmp/claude","/private/tmp/claude","/private/tmp/ps-9d85Le/home/.npm/_logs","/private/tmp/ps-9d85Le/home/.claude/debug"],"wrapper":"/bin/bash","launcherPid":12951,"cleanup":"wrapper-exited-descendants-unverified","lockHash":"27101405527f2152175bf4c3eb42d31d23527b7beb490372a01f5d05367ee16f","sourceHash":"5eeacb2dfe8a8c673fb8df74de7f66d041e21952d334fcc9a085a06b7f8dd8ca","outsideHash":"5737c78207a56d81e0c5a6efe0bf1ee178d2dc5b2682bce2f8010c00e266c1ff"}
+
+stdout | tests/sandbox/p0.test.ts > P0 S27/S29: hostile wrapper text cannot write on the host; ordinary failures stay ordinary
+{"platform":"linux","arch":"arm64","os":"7.0.14-orbstack-00380-ga7e0a2dc9535","code":0,"stdout":"\n","stderr":"/bin/bash: line 1: /private/tmp/ps-9d85Le/outside.txt: Read-only file system\n","policyHash":"2b575da2dd0f758287cf60fe1a845d77110756b935eaee38f40a4caef4c6b726","defaultWritePaths":["/dev/stdout","/dev/stderr","/dev/null","/dev/tty","/dev/dtracehelper","/dev/autofs_nowait","/tmp/claude","/private/tmp/claude","/private/tmp/ps-9d85Le/home/.npm/_logs","/private/tmp/ps-9d85Le/home/.claude/debug"],"wrapper":"/bin/bash","launcherPid":12984,"cleanup":"wrapper-exited-descendants-unverified","lockHash":"27101405527f2152175bf4c3eb42d31d23527b7beb490372a01f5d05367ee16f","sourceHash":"5eeacb2dfe8a8c673fb8df74de7f66d041e21952d334fcc9a085a06b7f8dd8ca","outsideHash":"5737c78207a56d81e0c5a6efe0bf1ee178d2dc5b2682bce2f8010c00e266c1ff"}
+
+stdout | tests/sandbox/p0.test.ts > P0 S27/S29: hostile wrapper text cannot write on the host; ordinary failures stay ordinary
+{"platform":"linux","arch":"arm64","os":"7.0.14-orbstack-00380-ga7e0a2dc9535","code":2,"stdout":"","stderr":"/bin/bash: -c: line 1: unexpected EOF while looking for matching `''\n","policyHash":"2b575da2dd0f758287cf60fe1a845d77110756b935eaee38f40a4caef4c6b726","defaultWritePaths":["/dev/stdout","/dev/stderr","/dev/null","/dev/tty","/dev/dtracehelper","/dev/autofs_nowait","/tmp/claude","/private/tmp/claude","/private/tmp/ps-9d85Le/home/.npm/_logs","/private/tmp/ps-9d85Le/home/.claude/debug"],"wrapper":"/bin/bash","launcherPid":13018,"cleanup":"wrapper-exited-descendants-unverified","lockHash":"27101405527f2152175bf4c3eb42d31d23527b7beb490372a01f5d05367ee16f","sourceHash":"5eeacb2dfe8a8c673fb8df74de7f66d041e21952d334fcc9a085a06b7f8dd8ca","outsideHash":"5737c78207a56d81e0c5a6efe0bf1ee178d2dc5b2682bce2f8010c00e266c1ff"}
+
+stdout | tests/sandbox/p0.test.ts > P0 S27/S29: hostile wrapper text cannot write on the host; ordinary failures stay ordinary
+{"platform":"linux","arch":"arm64","os":"7.0.14-orbstack-00380-ga7e0a2dc9535","code":1,"stdout":"","stderr":"node:fs:2414\n    return binding.writeFileUtf8(\n                   ^\n\nError: EROFS: read-only file system, open '/private/tmp/ps-9d85Le/outside.txt'\n    at Object.writeFileSync (node:fs:2414:20)\n    at [eval]:1:20\n    at runScriptInThisContext (node:internal/vm:219:10)\n    at node:internal/process/execution:451:12\n    at [eval]-wrapper:6:24\n    at runScriptInContext (node:internal/process/execution:449:60)\n    at evalFunction (node:internal/process/execution:283:30)\n    at evalTypeScript (node:internal/process/execution:295:3)\n    at node:internal/main/eval_string:71:3 {\n  errno: -30,\n  code: 'EROFS',\n  syscall: 'open',\n  path: '/private/tmp/ps-9d85Le/outside.txt'\n}\n\nNode.js v24.15.0\n","policyHash":"2b575da2dd0f758287cf60fe1a845d77110756b935eaee38f40a4caef4c6b726","defaultWritePaths":["/dev/stdout","/dev/stderr","/dev/null","/dev/tty","/dev/dtracehelper","/dev/autofs_nowait","/tmp/claude","/private/tmp/claude","/private/tmp/ps-9d85Le/home/.npm/_logs","/private/tmp/ps-9d85Le/home/.claude/debug"],"wrapper":"/bin/bash","launcherPid":13051,"cleanup":"wrapper-exited-descendants-unverified","lockHash":"27101405527f2152175bf4c3eb42d31d23527b7beb490372a01f5d05367ee16f","sourceHash":"5eeacb2dfe8a8c673fb8df74de7f66d041e21952d334fcc9a085a06b7f8dd8ca","outsideHash":"5737c78207a56d81e0c5a6efe0bf1ee178d2dc5b2682bce2f8010c00e266c1ff"}
+
+stdout | tests/sandbox/p0.test.ts > P0 S27/S29: hostile wrapper text cannot write on the host; ordinary failures stay ordinary
+{"platform":"linux","arch":"arm64","os":"7.0.14-orbstack-00380-ga7e0a2dc9535","code":37,"stdout":"","stderr":"","policyHash":"2b575da2dd0f758287cf60fe1a845d77110756b935eaee38f40a4caef4c6b726","defaultWritePaths":["/dev/stdout","/dev/stderr","/dev/null","/dev/tty","/dev/dtracehelper","/dev/autofs_nowait","/tmp/claude","/private/tmp/claude","/private/tmp/ps-9d85Le/home/.npm/_logs","/private/tmp/ps-9d85Le/home/.claude/debug"],"wrapper":"/bin/bash","launcherPid":13090,"cleanup":"wrapper-exited-descendants-unverified","lockHash":"27101405527f2152175bf4c3eb42d31d23527b7beb490372a01f5d05367ee16f","sourceHash":"5eeacb2dfe8a8c673fb8df74de7f66d041e21952d334fcc9a085a06b7f8dd8ca","outsideHash":"5737c78207a56d81e0c5a6efe0bf1ee178d2dc5b2682bce2f8010c00e266c1ff"}
+
+ ✓ tests/sandbox/p0.test.ts (6 tests) 1926ms
+   ✓ P0 S04–S08/S11/S12: real source protection with permitted scratch and separate writer envelope  1013ms
+   ✓ P0 S27/S29: hostile wrapper text cannot write on the host; ordinary failures stay ordinary  480ms
+ ✓ tests/sandbox/race.test.ts (1 test) 1835ms
+   ✓ S21/S27: ancestor swaps cannot mutate an outside canary; missing qualified runtime fails closed  1834ms
+ ✓ tests/sandbox/upgrade.test.ts (1 test) 221ms
+ ✓ tests/sandbox/dns.test.ts (1 test) 181ms
+ ✓ tests/sandbox/descendants.test.ts (1 test) 202ms
+ ↓ tests/sandbox/launch-services.test.ts (1 test | 1 skipped)
+
+ Test Files  10 passed | 1 skipped (11)
+      Tests  15 passed | 1 skipped (16)
+   Start at  11:48:08
+   Duration  27.17s (transform 120ms, setup 0ms, import 691ms, tests 26.00s, environment 0ms)
+
+
+> pi-spoke@0.1.0 build
+> tsc -p tsconfig.json && node scripts/build-native.mjs
+

@@ -1,0 +1,76 @@
+
+> pi-spoke@0.1.0 verify
+> npm run typecheck && npm test && npm run test:contract && npm run test:integration && npm run test:sandbox && npm run build
+
+
+> pi-spoke@0.1.0 typecheck
+> tsc -p tsconfig.tests.json
+
+
+> pi-spoke@0.1.0 test
+> vitest run tests/unit
+
+
+ RUN  v4.1.11 /Users/benson/Documents/code/pi-spoke
+
+
+ Test Files  5 passed (5)
+      Tests  5 passed (5)
+   Start at  11:45:50
+   Duration  191ms (transform 136ms, setup 0ms, import 310ms, tests 33ms, environment 0ms)
+
+
+> pi-spoke@0.1.0 test:contract
+> npm run build && vitest run tests/contract
+
+
+> pi-spoke@0.1.0 build
+> tsc -p tsconfig.json && node scripts/build-native.mjs
+
+
+ RUN  v4.1.11 /Users/benson/Documents/code/pi-spoke
+
+
+ Test Files  7 passed (7)
+      Tests  8 passed (8)
+   Start at  11:45:53
+   Duration  3.41s (transform 342ms, setup 0ms, import 4.98s, tests 6.60s, environment 1ms)
+
+
+> pi-spoke@0.1.0 test:integration
+> npm run build && vitest run tests/integration
+
+
+> pi-spoke@0.1.0 build
+> tsc -p tsconfig.json && node scripts/build-native.mjs
+
+
+ RUN  v4.1.11 /Users/benson/Documents/code/pi-spoke
+
+
+ Test Files  5 passed (5)
+      Tests  15 passed (15)
+   Start at  11:45:59
+   Duration  3.90s (transform 179ms, setup 0ms, import 894ms, tests 10.18s, environment 0ms)
+
+
+> pi-spoke@0.1.0 test:sandbox
+> npm run build && vitest run tests/sandbox
+
+
+> pi-spoke@0.1.0 build
+> tsc -p tsconfig.json && node scripts/build-native.mjs
+
+
+ RUN  v4.1.11 /Users/benson/Documents/code/pi-spoke
+
+
+ Test Files  11 passed (11)
+      Tests  16 passed (16)
+   Start at  11:46:05
+   Duration  10.57s (transform 572ms, setup 0ms, import 2.34s, tests 51.79s, environment 1ms)
+
+
+> pi-spoke@0.1.0 build
+> tsc -p tsconfig.json && node scripts/build-native.mjs
+

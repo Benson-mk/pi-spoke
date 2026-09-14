@@ -244,7 +244,11 @@ export class Service {
     return { text: bytes.subarray(offset, end).toString('utf8'), next_offset_bytes: end, truncated: end < bytes.length,
       ...(end === offset && offset < bytes.length ? { minimum_next_bytes: minimum - offset } : {}) };
   }
-  async drain(): Promise<void> { await Promise.all([...this.tasks.values(), ...this.stopping.values()]); if (this.durabilityError) throw this.durabilityError; }
+  async drain(): Promise<void> {
+    // Running workers can initiate cancellation after the first snapshot.
+    while (this.tasks.size || this.stopping.size) await Promise.all([...this.tasks.values(), ...this.stopping.values()]);
+    if (this.durabilityError) throw this.durabilityError;
+  }
   async shutdown(): Promise<void> {
     this.shuttingDown = true;
     await Promise.all(this.store.runs().filter(run => !terminalStates.includes(run.state)).map(run => this.cancel(run.id, 'HOST_DISCONNECTED')));

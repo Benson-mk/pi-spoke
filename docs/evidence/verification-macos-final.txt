@@ -1,0 +1,76 @@
+
+> pi-spoke@0.1.0 verify
+> npm run typecheck && npm test && npm run test:contract && npm run test:integration && npm run test:sandbox && npm run build
+
+
+> pi-spoke@0.1.0 typecheck
+> tsc -p tsconfig.tests.json
+
+
+> pi-spoke@0.1.0 test
+> vitest run tests/unit
+
+
+ RUN  v4.1.11 /Users/benson/Documents/code/pi-spoke
+
+
+ Test Files  5 passed (5)
+      Tests  5 passed (5)
+   Start at  10:37:35
+   Duration  179ms (transform 134ms, setup 0ms, import 281ms, tests 31ms, environment 0ms)
+
+
+> pi-spoke@0.1.0 test:contract
+> npm run build && vitest run tests/contract
+
+
+> pi-spoke@0.1.0 build
+> tsc -p tsconfig.json
+
+
+ RUN  v4.1.11 /Users/benson/Documents/code/pi-spoke
+
+
+ Test Files  7 passed (7)
+      Tests  8 passed (8)
+   Start at  10:37:38
+   Duration  3.74s (transform 673ms, setup 0ms, import 6.97s, tests 7.12s, environment 0ms)
+
+
+> pi-spoke@0.1.0 test:integration
+> npm run build && vitest run tests/integration
+
+
+> pi-spoke@0.1.0 build
+> tsc -p tsconfig.json
+
+
+ RUN  v4.1.11 /Users/benson/Documents/code/pi-spoke
+
+
+ Test Files  5 passed (5)
+      Tests  15 passed (15)
+   Start at  10:37:44
+   Duration  3.74s (transform 150ms, setup 0ms, import 782ms, tests 9.75s, environment 0ms)
+
+
+> pi-spoke@0.1.0 test:sandbox
+> npm run build && vitest run tests/sandbox
+
+
+> pi-spoke@0.1.0 build
+> tsc -p tsconfig.json
+
+
+ RUN  v4.1.11 /Users/benson/Documents/code/pi-spoke
+
+
+ Test Files  11 passed (11)
+      Tests  16 passed (16)
+   Start at  10:37:50
+   Duration  16.19s (transform 527ms, setup 0ms, import 2.88s, tests 102.10s, environment 1ms)
+
+
+> pi-spoke@0.1.0 build
+> tsc -p tsconfig.json
+

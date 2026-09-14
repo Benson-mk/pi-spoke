@@ -157,3 +157,10 @@ using the same gateway integration.
 Linux is not run and is not claimed supported. An enclosing Codex
 sandbox blocks SRT socket creation; run disposable canaries on an authorized
 host boundary. That setup failure is not successful containment.
+
+OpenRouter was subsequently tested at `https://openrouter.ai/api/v1` through
+Pi openai-completions, using `nvidia/nemotron-3.5-lightning:free`. Its first run
+was cancelled at the 120-second limit before tool execution, with confirmed
+local cleanup; remote completion is unknown and continuation was not run.
+Gemini read/continuation/vision passed again. [Evidence](evidence/live-openrouter-macos.json).
+The final full suite passed 44 tests: [transcript](evidence/verification-macos-final.txt).

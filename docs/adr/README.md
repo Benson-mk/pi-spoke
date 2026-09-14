@@ -1,6 +1,6 @@
 # Architecture decisions
 
-These ADRs import the durable decisions already resolved in [IMPLEMENTATION_PLAN.md](../IMPLEMENTATION_PLAN.md), specification 1.1, dated 14 September 2026, targeting application release 0.1.0. `accepted` means accepted in that specification, not implemented or verified. The repository currently contains planning documents only.
+These ADRs import the durable decisions already resolved in [IMPLEMENTATION_PLAN.md](../IMPLEMENTATION_PLAN.md), specification 1.1, dated 14 September 2026, targeting application release 0.1.0. `accepted` means accepted in that specification, not implemented or verified. Implementation and qualification evidence are tracked in [implementation status](../implementation-status.md).
 
 The records preserve rationale and consequences; the plan retains the detailed implementation contract. [PHILOSOPHY.md](../PHILOSOPHY.md) governs product ownership and scope, and [SAFETY_SPEC.md](../SAFETY_SPEC.md) is normative together with the plan. The safety revision replaces specification 1.0's trusted-local-shell design; no older ADRs were present to supersede.
 

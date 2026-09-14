@@ -1,0 +1,72 @@
+{
+  "status": "FAIL",
+  "scope": "explicit live models, sandboxed read, native continuation, and vision input",
+  "distinct_provider_configurations": true,
+  "caveat": "Configured aliases do not certify distinct upstream integrations or gateway routing. Vision completion confirms image acceptance, not perception quality.",
+  "evidence": [
+    {
+      "model": {
+        "provider": "openrouter",
+        "id": "nvidia/nemotron-3.5-lightning:free"
+      },
+      "vision": false,
+      "state": "cancelled",
+      "cleanup": "confirmed",
+      "reason": "WALL_TIME_LIMIT",
+      "tool_executed": false,
+      "output_verified": false,
+      "elapsed_ms": 120160
+    },
+    {
+      "model": {
+        "provider": "operator-gateway",
+        "id": "gemini/gemini-3.8-flash"
+      },
+      "vision": false,
+      "state": "completed",
+      "cleanup": "confirmed",
+      "reason": null,
+      "tool_executed": true,
+      "output_verified": true,
+      "elapsed_ms": 11042
+    },
+    {
+      "model": {
+        "provider": "operator-gateway",
+        "id": "gemini/gemini-3.8-flash"
+      },
+      "continuation": true,
+      "state": "completed",
+      "cleanup": "confirmed",
+      "output_verified": true
+    },
+    {
+      "model": {
+        "provider": "operator-gateway",
+        "id": "gemini/gemini-3.8-flash"
+      },
+      "vision": true,
+      "state": "completed",
+      "cleanup": "confirmed",
+      "reason": null,
+      "tool_executed": false,
+      "output_verified": true,
+      "elapsed_ms": 16638
+    }
+  ],
+  "date": "2026-09-14",
+  "endpoint": "https://openrouter.ai/api/v1",
+  "configuration": {
+    "api": "openai-completions",
+    "reasoning": true,
+    "contextWindow": 1000000,
+    "maxTokens": 4096
+  },
+  "notes": [
+    "Explicit operator model and endpoint; no model substitution.",
+    "OpenRouter run cancelled at 120-second wall-time limit before any tool execution; local worker cleanup confirmed. Remote inference completion is unknown.",
+    "No automatic replay. OpenRouter continuation unrun because initial run did not complete.",
+    "Gemini read, continuation and image input passed again.",
+    "Temporary OpenRouter credential/configuration files removed; existing Codex verification configuration retained."
+  ]
+}

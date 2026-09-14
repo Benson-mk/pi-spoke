@@ -4,13 +4,13 @@
     {
       "id": "live-two-providers-and-vision",
       "status": "BLOCKED",
-      "remaining": "Spark is a verified tool-capable alternative to Llama. Both passing models use one OpenAI-compatible gateway configuration; two distinct provider integrations remain unverified.",
-      "evidence": "docs/evidence/live-spark-macos.json: Spark sandboxed read and native continuation PASS. docs/evidence/live-gateway-macos.json: Gemini read, continuation and image input PASS; prior Llama tool request FAIL."
+      "remaining": "Second integration OpenRouter configured and attempted with nvidia/nemotron-3.5-lightning:free; initial run hit the 120-second wall-time limit before tool execution. Local cleanup confirmed; no replay. Need a successful explicitly authorized second-provider check.",
+      "evidence": "docs/evidence/live-openrouter-macos.json: OpenRouter timeout; gateway Gemini read/continuation/vision PASS again. Existing Spark pass retained."
     },
     {
       "id": "platform-release-qualification",
       "status": "BLOCKED",
-      "remaining": "Apple Events and actual Codex host checks passed. Two distinct live provider integrations remain unverified; passing Spark and Gemini checks use one gateway integration. Linux is NOT RUN and rejected."
+      "remaining": "Apple Events, Codex host and final 44-test suite passed. OpenRouter second-provider run timed out; live qualification remains incomplete. Linux NOT RUN and rejected."
     }
   ]
 }

@@ -26,8 +26,8 @@ host configuration was subsequently added at the operator’s request.
 - Clean offline `npm ci --ignore-scripts` passed from the unchanged exact lock:
   [install transcript](evidence/clean-install.txt).
 - `npm run verify`: strict typecheck/build, **5 unit, 8 Pi contract,
-  15 integration, and 15 actual-sandbox tests pass**:
-  [verification transcript](evidence/verification-macos.txt).
+  15 integration, and 16 actual-sandbox tests pass**:
+  [final verification transcript](evidence/verification-macos-final.txt).
 - Tests use the real Pi SDK with local fake providers and actual macOS SRT.
   Compiled MCP tests exercise six tools, duplicates/conflicts, questions/replies,
   byte/cursor pagination, continuation, shell cancellation, actual supervisor
@@ -72,12 +72,16 @@ host configuration was subsequently added at the operator’s request.
    Discovery now uses secret-free credential metadata, with null for unknown;
    build/typecheck and [compiled MCP regression](evidence/catalog-auth-regression.txt)
    pass. Restart the loaded host to display that metadata correction.
-3. **Two live provider integrations:** Gemini read/continuation/vision and Spark
-   (`iFiy/spark-x2.5-4b`) read/continuation passed, all with confirmed cleanup.
-   [Spark evidence](evidence/live-spark-macos.json). Spark is a working alternative
-   to the previously failing Llama tool configuration. Both passing models use
-   one gateway integration; the distinct-integration requirement remains open.
-   Temporary credentials were removed. Linux is NOT RUN and rejected by this adapter.
+3. **Two live provider integrations: BLOCKED.** OpenRouter was configured at
+   `https://openrouter.ai/api/v1` with the explicit
+   `nvidia/nemotron-3.5-lightning:free` model. The initial run reached its
+   120-second limit before any tool execution; local cancellation cleanup was
+   confirmed, remote completion is unknown, and no replay was attempted.
+   OpenRouter continuation is UNRUN. Gemini read/continuation/vision passed again;
+   the previous Spark read/continuation pass remains valid.
+   [OpenRouter evidence](evidence/live-openrouter-macos.json). A successful
+   explicitly authorized second-provider check is still required. Temporary
+   OpenRouter credentials were removed. Linux is NOT RUN and rejected.
 
 Arbitrary shell descendants can outlive their wrapper while staying sandboxed.
 Such runs end interrupted with `cleanup=unconfirmed`; saved output and safe

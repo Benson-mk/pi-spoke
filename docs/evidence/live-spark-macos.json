@@ -1,0 +1,48 @@
+{
+  "status": "PARTIAL",
+  "scope": "single explicit Spark model: sandboxed read and native continuation; no vision request",
+  "distinct_provider_configurations": false,
+  "caveat": "One configured gateway integration; upstream routing not certified. Gemini vision evidence retained separately.",
+  "evidence": [
+    {
+      "model": {
+        "provider": "operator-gateway",
+        "id": "iFiy/spark-x2.5-4b"
+      },
+      "vision": false,
+      "state": "completed",
+      "cleanup": "confirmed",
+      "reason": null,
+      "tool_executed": true,
+      "output_verified": true,
+      "elapsed_ms": 15406
+    },
+    {
+      "model": {
+        "provider": "operator-gateway",
+        "id": "iFiy/spark-x2.5-4b"
+      },
+      "continuation": true,
+      "state": "completed",
+      "cleanup": "confirmed",
+      "output_verified": true
+    }
+  ],
+  "date": "2026-09-14",
+  "model_checks": "PASS",
+  "runner": "df52d47 scripts/live-gate.mjs, disposable copy restricted to one model and two expected observations; vision not rerun",
+  "catalog_metadata": {
+    "id": "iFiy/spark-x2.5-4b",
+    "owned_by": "iFiy",
+    "tool_calling": true,
+    "reasoning": true,
+    "context_length": 128000
+  },
+  "test_configuration": {
+    "api": "openai-completions",
+    "reasoning": false,
+    "contextWindow": 32768,
+    "maxTokens": 2048
+  },
+  "credential_cleanup": "Temporary operator auth and configuration removed after verification."
+}

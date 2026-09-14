@@ -1407,8 +1407,8 @@
     {
       "id": "live-two-providers-and-vision",
       "status": "BLOCKED",
-      "remaining": "Enable automatic tool choice and a compatible tool-call parser for UST/llama33-70b, or explicitly select another tool-capable model. Supplied models share one OpenAI-compatible gateway; two distinct provider integrations remain unverified.",
-      "evidence": "docs/evidence/live-gateway-macos.json: Gemini sandboxed read, native continuation and image input PASS; Llama tool request FAIL (HTTP 400 upstream tool-parser configuration)."
+      "remaining": "Spark is a verified tool-capable alternative to Llama. Both passing models use one OpenAI-compatible gateway configuration; two distinct provider integrations remain unverified.",
+      "evidence": "docs/evidence/live-spark-macos.json: Spark sandboxed read and native continuation PASS. docs/evidence/live-gateway-macos.json: Gemini read, continuation and image input PASS; prior Llama tool request FAIL."
     },
     {
       "id": "physical-disk-full",

@@ -66,11 +66,12 @@ installation was performed.
 2. **Manual Codex host exercise:** configure the supplied TOML and complete the
    discovery/spawn/independent-work/observe/question/reply/steer/continue/cancel
    checklist. The host remains free not to delegate.
-3. **Two live provider integrations:** Gemini read/continuation/vision passed.
-   Configure Llama upstream with `--enable-auto-tool-choice` and an appropriate
-   `--tool-call-parser`, or explicitly select another tool-capable model. The
-   supplied gateway alone does not verify two distinct integrations. Temporary
-   credentials were removed. Linux is NOT RUN and rejected by this adapter.
+3. **Two live provider integrations:** Gemini read/continuation/vision and Spark
+   (`iFiy/spark-x2.5-4b`) read/continuation passed, all with confirmed cleanup.
+   [Spark evidence](evidence/live-spark-macos.json). Spark is a working alternative
+   to the previously failing Llama tool configuration. Both passing models use
+   one gateway integration; the distinct-integration requirement remains open.
+   Temporary credentials were removed. Linux is NOT RUN and rejected by this adapter.
 
 Arbitrary shell descendants can outlive their wrapper while staying sandboxed.
 Such runs end interrupted with `cleanup=unconfirmed`; saved output and safe

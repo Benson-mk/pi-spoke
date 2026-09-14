@@ -148,6 +148,10 @@ input. Llama rejected automatic tool choice with HTTP 400 despite advertised
 tool support; its upstream requires tool-choice/parser configuration. Both
 models were configured through one OpenAI-compatible integration.
 [Live results](evidence/live-gateway-macos.json) are partial release evidence.
+The subsequently selected `iFiy/spark-x2.5-4b` passed sandboxed read and native
+continuation with confirmed cleanup: [Spark results](evidence/live-spark-macos.json).
+It is a verified tool-capable alternative to the failing Llama configuration,
+using the same gateway integration.
 Linux is not run and is not claimed supported. An enclosing Codex
 sandbox blocks SRT socket creation; run disposable canaries on an authorized
 host boundary. That setup failure is not successful containment.

@@ -128,3 +128,9 @@ read/continuation/image input; Llama failed tool calling because its upstream
 requires `--enable-auto-tool-choice` and a compatible `--tool-call-parser`.
 See [live evidence](evidence/live-gateway-macos.json). The disabled gate remains
 checked separately; live inference is never enabled by default.
+
+The subsequently selected `iFiy/spark-x2.5-4b` passed sandboxed read and
+same-session continuation through MCP, with confirmed cleanup.
+[Spark evidence](evidence/live-spark-macos.json). It provides a working alternative
+to the Llama tool configuration; the shared gateway still does not establish
+two distinct provider integrations. No additional vision request was made.

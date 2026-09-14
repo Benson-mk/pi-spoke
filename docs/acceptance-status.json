@@ -850,7 +850,7 @@
     {
       "id": "S10",
       "scenario": "Authorized `write` empties an ordinary allowed file",
-      "required": "The test may succeed: record that permitted writes can destroy content. Do not mislabel the system “no data loss”",
+      "required": "The test may succeed: record that permitted writes can destroy content. Do not mislabel the system \u201cno data loss\u201d",
       "status": "PASS",
       "source": "docs/SAFETY_TESTS.md",
       "evidence": [
@@ -1407,7 +1407,8 @@
     {
       "id": "live-two-providers-and-vision",
       "status": "BLOCKED",
-      "remaining": "Provide operator-owned auth/model config and explicit model selection, then run the opt-in instructions in docs/operations.md."
+      "remaining": "Enable automatic tool choice and a compatible tool-call parser for UST/llama33-70b, or explicitly select another tool-capable model. Supplied models share one OpenAI-compatible gateway; two distinct provider integrations remain unverified.",
+      "evidence": "docs/evidence/live-gateway-macos.json: Gemini sandboxed read, native continuation and image input PASS; Llama tool request FAIL (HTTP 400 upstream tool-parser configuration)."
     },
     {
       "id": "physical-disk-full",

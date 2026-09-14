@@ -43,6 +43,15 @@ installation was performed.
   RSS 425,376 KiB. Single fake-provider sample; not aggregate worker-tree memory.
 - Disabled live gate exits nonzero without loading live credentials or making
   inference calls: [gate evidence](evidence/live-gate-disabled.txt).
+- Explicit live gateway checks: Gemini passed actual sandboxed read, native
+  same-session continuation, and PNG input through MCP. Llama plain text passed,
+  but its Pi tool request failed with HTTP 400 requiring upstream automatic tool
+  choice and parser configuration. Both selections share one gateway, so two
+  distinct integrations remain unverified. [Live evidence](evidence/live-gateway-macos.json).
+- Live-harness regression PASS with real Pi, fake HTTP, and actual SRT reads:
+  shared-provider success stays partial and missing tool execution fails.
+  [Transcript](evidence/live-harness-regression.txt). Strict typecheck and script
+  syntax checks also pass; the default live gate still rejects without opt-in.
 - The [acceptance ledger](acceptance-status.json) retains all 66 cases:
   **65 PASS locally, S26 BLOCKED**. `npm run release:check` intentionally fails
   while required external gates remain. Partial evidence is not a release pass.
@@ -57,9 +66,11 @@ installation was performed.
 2. **Manual Codex host exercise:** configure the supplied TOML and complete the
    discovery/spawn/independent-work/observe/question/reply/steer/continue/cancel
    checklist. The host remains free not to delegate.
-3. **Two live providers plus vision:** supply operator-owned configuration and
-   explicit model selections, then run the opt-in live runner. No live tests
-   have run. Linux is NOT RUN and rejected by this adapter; support is not claimed.
+3. **Two live provider integrations:** Gemini read/continuation/vision passed.
+   Configure Llama upstream with `--enable-auto-tool-choice` and an appropriate
+   `--tool-call-parser`, or explicitly select another tool-capable model. The
+   supplied gateway alone does not verify two distinct integrations. Temporary
+   credentials were removed. Linux is NOT RUN and rejected by this adapter.
 
 Arbitrary shell descendants can outlive their wrapper while staying sandboxed.
 Such runs end interrupted with `cleanup=unconfirmed`; saved output and safe

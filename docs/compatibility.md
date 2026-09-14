@@ -142,7 +142,12 @@ Direct Apple Events' outside-sandbox positive control returns `-1744` with user
 consent prompts disabled; this is **BLOCKED**, not a containment pass. The
 disposable Launch Services application and Unix-socket checks pass. See
 [Apple Events evidence](evidence/apple-events-macos.json). Manual Codex use and
-two live provider integrations plus vision also remain blocked on external input.
+two distinct live provider integrations remain blocked on external input. The
+supplied gateway passed Gemini sandboxed read, native continuation and image
+input. Llama rejected automatic tool choice with HTTP 400 despite advertised
+tool support; its upstream requires tool-choice/parser configuration. Both
+models were configured through one OpenAI-compatible integration.
+[Live results](evidence/live-gateway-macos.json) are partial release evidence.
 Linux is not run and is not claimed supported. An enclosing Codex
 sandbox blocks SRT socket creation; run disposable canaries on an authorized
 host boundary. That setup failure is not successful containment.

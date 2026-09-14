@@ -116,9 +116,15 @@ PI_SPOKE_LIVE_SELECTION=/absolute/live-selection.json \
 npm run test:live
 ```
 
-The runner uses disposable state/workspace, no execution tools, two distinct
-provider integrations, and one PNG attachment. It never prints provider response
+The runner uses disposable state/workspace, an actual OS-sandboxed `read` tool,
+a random file-content check, native same-session continuation, and one PNG
+attachment. The read and continuation checks run for each selected model.
+Selections sharing one provider configuration can be tested, but cannot pass
+the two-integration gate. Two aliases alone do not prove distinct integrations. It never prints provider response
 content or credentials, never retries uncertain work, and does not run from
 `verify`. Model quota/entitlement and any provider-side billing remain external.
-The live runner's opt-in path is unrun until these inputs are supplied; its
-disabled gate has been checked separately.
+The supplied gateway was tested explicitly on 2026-09-14: Gemini passed
+read/continuation/image input; Llama failed tool calling because its upstream
+requires `--enable-auto-tool-choice` and a compatible `--tool-call-parser`.
+See [live evidence](evidence/live-gateway-macos.json). The disabled gate remains
+checked separately; live inference is never enabled by default.

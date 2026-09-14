@@ -1,0 +1,41 @@
+{
+  "status": "PARTIAL",
+  "scope": "operator-authorized OpenRouter retry, sandboxed read and continuation, five-minute per-run limit",
+  "distinct_provider_configurations": false,
+  "caveat": "Single-provider retry by design; combine with recorded gateway Gemini read/continuation/vision evidence for the two-provider gate. Upstream routing is not certified.",
+  "evidence": [
+    {
+      "model": {
+        "provider": "openrouter",
+        "id": "nvidia/nemotron-3.5-lightning:free"
+      },
+      "vision": false,
+      "state": "completed",
+      "cleanup": "confirmed",
+      "reason": null,
+      "tool_executed": true,
+      "output_verified": true,
+      "elapsed_ms": 17791
+    },
+    {
+      "model": {
+        "provider": "openrouter",
+        "id": "nvidia/nemotron-3.5-lightning:free"
+      },
+      "continuation": true,
+      "state": "completed",
+      "cleanup": "confirmed",
+      "output_verified": true
+    }
+  ],
+  "date": "2026-09-14",
+  "model_checks": "PASS",
+  "endpoint": "https://openrouter.ai/api/v1",
+  "authorization": "User explicitly requested retry after the previous timeout; fresh disposable run, no automatic replay.",
+  "runner": "4134489 live-gate.mjs disposable copy restricted to one model, two required observations, and 300000 ms per-run limit.",
+  "run_ids": [
+    "run_9d021749-00e5-42c7-bd0b-1a642747afea",
+    "run_f9bacf1e-c7ba-4737-af01-f68daeaae015"
+  ],
+  "credential_cleanup": "Temporary OpenRouter authentication and configuration removed."
+}

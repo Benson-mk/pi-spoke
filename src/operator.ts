@@ -18,8 +18,8 @@ export async function doctor(config: OperatorConfig, instance: string) {
   return { version: '0.1.0', node: process.version, platform: platform(), architecture: arch(), configuration_version: 2,
     instance, state_present: await access(directory).then(() => true, () => false), ownership_lock: lock,
     backend: 'srt', backend_version: '0.0.76', backend_binary_present: platform() === 'darwin' && await access('/usr/bin/sandbox-exec').then(() => true, () => false),
-    sandbox_check: 'NOT RUN; use --sandbox-check', release_ready: false,
-    limitations: ['macOS adapter only; platform release qualification incomplete', 'arbitrary shell descendant cleanup unconfirmed', 'project shell-write roots rejected'],
+    sandbox_check: 'NOT RUN; use --sandbox-check', release_ready: null, release_assessment: 'Not assessed by doctor; see the release acceptance ledger',
+    limitations: ['macOS adapter only; exact qualified identities required', 'arbitrary shell descendant cleanup unconfirmed', 'project shell-write roots rejected'],
     live_provider_tests: 'NOT RUN; explicitly opt-in' };
 }
 export async function sandboxCheck(runtimeRoot: string) {

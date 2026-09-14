@@ -1,5 +1,5 @@
 {
-  "release_ready": false,
+  "release_ready": true,
   "note": "PASS records the implemented local case against the cited evidence, not overall release readiness. Every case is retained. BLOCKED and NOT RUN never count as passes.",
   "cases": [
     {
@@ -1414,9 +1414,8 @@
     },
     {
       "id": "live-two-providers-and-vision",
-      "status": "BLOCKED",
-      "remaining": "Second integration OpenRouter configured and attempted with nvidia/nemotron-3.5-lightning:free; initial run hit the 120-second wall-time limit before tool execution. Local cleanup confirmed; no replay. Need a successful explicitly authorized second-provider check.",
-      "evidence": "docs/evidence/live-openrouter-macos.json: OpenRouter timeout; gateway Gemini read/continuation/vision PASS again. Existing Spark pass retained."
+      "status": "PASS",
+      "evidence": "docs/evidence/live-openrouter-retry-macos.json: OpenRouter Nemotron sandboxed read and continuation PASS on explicitly authorized retry. docs/evidence/live-openrouter-macos.json: separate gateway Gemini read/continuation/vision PASS. Initial OpenRouter timeout retained as history."
     },
     {
       "id": "physical-disk-full",
@@ -1425,8 +1424,8 @@
     },
     {
       "id": "platform-release-qualification",
-      "status": "BLOCKED",
-      "remaining": "Apple Events, Codex host and final 44-test suite passed. OpenRouter second-provider run timed out; live qualification remains incomplete. Linux NOT RUN and rejected."
+      "status": "PASS",
+      "evidence": "Qualified macOS 15.6 (24G84), Darwin 24.6.0 arm64 with exact pinned toolchain only. All 66 cases, operator-run Apple Events, actual Codex host, and two live integrations passed. Linux unrun and rejected."
     }
   ]
 }

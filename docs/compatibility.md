@@ -1,7 +1,7 @@
 # Compatibility evidence
 
-Verification date: 2026-09-14. P0–P5 local evidence; **not complete release qualification**.
-No platform is claimed supported yet.
+Verification date: 2026-09-14. P0–P5 gates passed for the exact macOS host and pinned identities below.
+The source is release-ready but unpublished; Linux is unrun and rejected.
 
 | Component | Exact installed version | Registry revision |
 |---|---|---|
@@ -136,15 +136,15 @@ Anthropic request adapters construct SDK clients with `maxRetries: 0`; their
 shared request retry helper also defaults to zero. Other provider integrations
 may have their own transport semantics and require the opt-in live gates.
 
-## Remaining gates
+## Qualification history
 
 Direct Apple Events passed in the operator-run interactive fixture: outside
 controls succeeded and sandbox delivery returned `-600`; the finite receiver
 exited and its fixture was removed. [Interactive evidence](evidence/apple-events-macos-interactive.json).
 The earlier noninteractive `-1744` consent block is retained as history.
 Disposable Launch Services and Unix-socket checks also pass. Actual Codex host verification passed all six tools and lifecycle interactions.
-[Host evidence](evidence/codex-host-verification.json). Two distinct live provider
-integrations remain blocked on external input. The
+[Host evidence](evidence/codex-host-verification.json). At that stage two distinct live provider
+integrations were still blocked; the subsequent OpenRouter pass below resolves this. The
 supplied gateway passed Gemini sandboxed read, native continuation and image
 input. Llama rejected automatic tool choice with HTTP 400 despite advertised
 tool support; its upstream requires tool-choice/parser configuration. Both
@@ -164,3 +164,9 @@ was cancelled at the 120-second limit before tool execution, with confirmed
 local cleanup; remote completion is unknown and continuation was not run.
 Gemini read/continuation/vision passed again. [Evidence](evidence/live-openrouter-macos.json).
 The final full suite passed 44 tests: [transcript](evidence/verification-macos-final.txt).
+
+The explicitly authorized fresh OpenRouter retry subsequently PASSED sandboxed
+read and native continuation with confirmed cleanup. Together with gateway
+Gemini vision, this satisfies the two-integration live gate.
+[Retry evidence](evidence/live-openrouter-retry-macos.json). Earlier timeout and
+blocked observations above remain historical evidence, not current blockers.

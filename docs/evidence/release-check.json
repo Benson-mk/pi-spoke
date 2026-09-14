@@ -1,16 +1,4 @@
 {
-  "release_ready": false,
-  "remaining": [
-    {
-      "id": "live-two-providers-and-vision",
-      "status": "BLOCKED",
-      "remaining": "Second integration OpenRouter configured and attempted with nvidia/nemotron-3.5-lightning:free; initial run hit the 120-second wall-time limit before tool execution. Local cleanup confirmed; no replay. Need a successful explicitly authorized second-provider check.",
-      "evidence": "docs/evidence/live-openrouter-macos.json: OpenRouter timeout; gateway Gemini read/continuation/vision PASS again. Existing Spark pass retained."
-    },
-    {
-      "id": "platform-release-qualification",
-      "status": "BLOCKED",
-      "remaining": "Apple Events, Codex host and final 44-test suite passed. OpenRouter second-provider run timed out; live qualification remains incomplete. Linux NOT RUN and rejected."
-    }
-  ]
+  "release_ready": true,
+  "remaining": []
 }

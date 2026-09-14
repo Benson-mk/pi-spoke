@@ -16,7 +16,7 @@ test('P4: doctor is read-oriented; recovery refuses live recorded processes; GC 
     pi: { auth_path: join(root, 'auth') }, sandbox: { backend: 'srt', required: true, tool_network: 'none' } });
   const configPath = join(root, 'config.json'); await writeFile(configPath, JSON.stringify(config));
   try {
-    expect(await doctor(config, 'test')).toMatchObject({ state_present: false, release_ready: false });
+    expect(await doctor(config, 'test')).toMatchObject({ state_present: false, release_ready: null });
     await expect(access(config.state_dir)).rejects.toThrow();
     const result = await execute(process.execPath, [resolve('dist/cli.js'), 'doctor', '--config', configPath, '--instance', 'test']);
     expect(JSON.parse(result.stdout)).toMatchObject({ configuration_version: 2, state_present: false });

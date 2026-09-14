@@ -1,8 +1,9 @@
 # Running the implementation candidate
 
-This is an unreleased 0.1.0 candidate. Read [implementation status](implementation-status.md)
-and [compatibility](compatibility.md) before enabling tools. No platform release
-claim or successful descendant-cleanup claim is made.
+This is an unpublished 0.1.0 source build with release gates passed on the
+exact qualified macOS host. Read [implementation status](implementation-status.md)
+and [compatibility](compatibility.md) before enabling tools. Qualification does not extend to different platform/toolchain identities or
+unconfirmed arbitrary shell descendant cleanup.
 
 Use Node 24.15.0 and the exact lockfile. Run `npm ci --ignore-scripts` and
 `npm run build`. The server entry point is `dist/cli.js`. Pi authentication and
@@ -141,3 +142,8 @@ Model catalog authentication metadata is true when stored credential metadata
 or a populated Pi snapshot establishes configuration; otherwise it is null
 (unknown). This never verifies entitlement and does not execute credential
 commands or refresh provider tokens.
+
+All required release gates now pass for the pinned macOS host. The explicitly
+authorized OpenRouter retry passed read and continuation; earlier failures are
+retained as history. Plain doctor reports release_ready as null because it
+does not execute the release audit; use `npm run release:check` for that ledger.

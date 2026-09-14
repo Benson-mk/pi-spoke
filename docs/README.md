@@ -1,10 +1,10 @@
 # Project documentation
 
-pi-spoke is a local delegation and communication layer between a main agent and independent Pi workers. This repository contains specification 1.1 and an unreleased implementation candidate for application 0.1.0. Release readiness is tracked with observed evidence; passing implementation slices are not a release claim.
+pi-spoke is a local delegation and communication layer between a main agent and independent Pi workers. This repository contains specification 1.1 and an unpublished, release-qualified implementation of application 0.1.0 on the pinned macOS host. Release readiness is tracked with observed evidence; qualification is scoped to recorded host/toolchain identities.
 
 | Read when you need… | Document |
 |---|---|
-| Implemented milestones and remaining gates | [Implementation status](implementation-status.md) · [Acceptance ledger](acceptance-status.json) |
+| Implemented milestones and remaining gates | [Implementation status](implementation-status.md) · [Acceptance ledger](acceptance-status.json) · [Release audit](release-audit.md) |
 | Local operation and Codex configuration | [Operations](operations.md) · [Host verification](codex-host-verification.md) |
 | Qualified dependencies and limitations | [Compatibility](compatibility.md) |
 | Initial release specification | [pi-spoke 0.1.0 spec](specs/pi-spoke-v0.1.md) · [GitHub issue #1](https://github.com/Benson-mk/pi-spoke/issues/1) |

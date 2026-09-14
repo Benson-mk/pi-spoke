@@ -1,0 +1,13 @@
+
+> pi-spoke@0.1.0 test
+> vitest run tests/unit
+
+
+ RUN  v4.1.11 /Users/benson/Documents/code/pi-spoke
+
+
+ Test Files  6 passed (6)
+      Tests  6 passed (6)
+   Start at  13:57:08
+   Duration  287ms (transform 203ms, setup 0ms, import 365ms, tests 170ms, environment 0ms)
+

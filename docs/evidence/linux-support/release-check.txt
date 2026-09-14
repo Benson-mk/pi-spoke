@@ -1,0 +1,42 @@
+
+> pi-spoke@0.1.0 test
+> vitest run tests/unit
+
+
+ RUN  v4.1.11 /home/benson/pi-spoke
+
+ ✓ tests/unit/release-check.test.ts (1 test) 82ms
+ ✓ tests/unit/metadata-policy.test.ts (1 test) 14ms
+ ✓ tests/unit/policy.test.ts (1 test) 14ms
+ ✓ tests/unit/topology.test.ts (1 test) 4ms
+ ✓ tests/unit/qualification.test.ts (1 test) 2ms
+ ✓ tests/unit/redaction.test.ts (1 test) 1ms
+
+ Test Files  6 passed (6)
+      Tests  6 passed (6)
+   Start at  13:58:28
+   Duration  551ms (transform 65ms, setup 0ms, import 143ms, tests 118ms, environment 0ms)
+
+
+> pi-spoke@0.1.0 typecheck
+> tsc -p tsconfig.tests.json
+
+
+> pi-spoke@0.1.0 release:check
+> node scripts/check-release.mjs
+
+{
+  "platform": "linux",
+  "scope": "Recorded qualification for the pinned host; not verification of the current machine",
+  "release_ready": false,
+  "remaining": [
+    {
+      "id": "manual-codex",
+      "status": "NOT RUN",
+      "reason": "Linux stdio transport exposes all six tools and pi_spoke_linux is registered. Actual Codex calls await tool reload; transport discovery is not host verification.",
+      "evidence": [
+        "host-transport.json"
+      ]
+    }
+  ]
+}

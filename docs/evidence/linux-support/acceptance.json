@@ -824,13 +824,19 @@
     },
     {
       "id": "live-two-providers-and-vision",
-      "status": "BLOCKED",
-      "reason": "Auto-review rejected credential transfer and provider calls; explicit authorization pending."
+      "status": "PASS",
+      "reason": "Direct OpenRouter Nemotron and gateway Gemini passed sandboxed read and native continuation; Gemini image input passed. All cleanup confirmed; temporary credentials removed.",
+      "evidence": [
+        "live-openrouter.json"
+      ]
     },
     {
       "id": "manual-codex",
       "status": "NOT RUN",
-      "reason": "Actual Codex host evidence is macOS-only; Linux public MCP contract tested separately."
+      "reason": "Linux stdio transport exposes all six tools and pi_spoke_linux is registered. Actual Codex calls await tool reload; transport discovery is not host verification.",
+      "evidence": [
+        "host-transport.json"
+      ]
     }
   ]
 }

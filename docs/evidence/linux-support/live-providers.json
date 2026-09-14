@@ -1,0 +1,71 @@
+{
+  "status": "FAIL",
+  "scope": "explicit live models, sandboxed read, native continuation, and vision input",
+  "distinct_provider_configurations": true,
+  "caveat": "Configured aliases do not certify distinct upstream integrations or gateway routing. Vision completion confirms image acceptance, not perception quality.",
+  "evidence": [
+    {
+      "model": {
+        "provider": "nvidia-nim",
+        "id": "deepseek-ai/deepseek-v4-pro"
+      },
+      "vision": false,
+      "state": "failed",
+      "cleanup": "confirmed",
+      "reason": "PROVIDER_ERROR",
+      "tool_executed": false,
+      "output_verified": false,
+      "elapsed_ms": 3213
+    },
+    {
+      "model": {
+        "provider": "operator-gateway",
+        "id": "gemini/gemini-3.8-flash"
+      },
+      "vision": false,
+      "state": "completed",
+      "cleanup": "confirmed",
+      "reason": null,
+      "tool_executed": true,
+      "output_verified": true,
+      "elapsed_ms": 21341
+    },
+    {
+      "model": {
+        "provider": "operator-gateway",
+        "id": "gemini/gemini-3.8-flash"
+      },
+      "continuation": true,
+      "state": "completed",
+      "cleanup": "confirmed",
+      "output_verified": true
+    },
+    {
+      "model": {
+        "provider": "operator-gateway",
+        "id": "gemini/gemini-3.8-flash"
+      },
+      "vision": true,
+      "state": "completed",
+      "cleanup": "confirmed",
+      "reason": null,
+      "tool_executed": false,
+      "output_verified": true,
+      "elapsed_ms": 11491
+    }
+  ],
+  "date": "2026-09-14",
+  "platform": "linux-arm64-orbstack",
+  "tested_commit": "f395146",
+  "endpoints": {
+    "nvidia-nim": "https://integrate.api.nvidia.com/v1",
+    "operator-gateway": "http://192.168.2.109:20128/v1"
+  },
+  "temporary_vm_credentials_removed": true,
+  "notes": [
+    "Explicit operator authorization for temporary credential transfer and disposable live checks.",
+    "No automatic retry or fallback. NVIDIA continuation was not run after the failed first run.",
+    "Follow-up NVIDIA model discovery returned HTTP 200 but did not list deepseek-ai/deepseek-v4-pro. The live harness reports PROVIDER_ERROR without the upstream error details; model absence alone does not establish the exact error cause.",
+    "A macOS Python availability probe failed local certificate validation; a Node probe with normal TLS validation succeeded. This is separate from Linux inference evidence."
+  ]
+}

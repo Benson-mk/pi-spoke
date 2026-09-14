@@ -3,7 +3,7 @@
 Date: 2026-09-14. Outcome: required gates PASS for macOS 15.6 (24G84),
 Darwin 24.6.0 arm64 with the exact Node, Pi, MCP, SRT, compiler and binary
 identities in [compatibility](compatibility.md). This is a source-build
-qualification, not a package publication or release action. Linux was tested in an OrbStack VM and remains explicitly rejected; other platform/toolchain identities require qualification.
+qualification, not a package publication or release action. Linux execution is implemented on its pinned OrbStack identity; its separate external release gates remain incomplete. Other platform/toolchain identities require qualification.
 
 | Required outcome | Authoritative evidence |
 |---|---|
@@ -52,15 +52,18 @@ Linux verification was subsequently run against commit `2e3523c` in an isolated
 Ubuntu 24.04.5 arm64 OrbStack VM: build/typecheck/install and 28 non-sandbox
 tests passed; all 16 sandbox tests failed on the macOS-specific adapter and
 fixtures. Bubblewrap itself passed a primitive launch/network-namespace probe.
-Linux remains unsupported; the existing release qualification is macOS-only.
-[Linux results](evidence/linux-orbstack/summary.json). The VM is stopped and
-retained as `pi-spoke-linux-test`; no live-provider credentials were copied.
+That initial result is historical; the adapter and local qualification below
+supersede it. [Initial Linux results](evidence/linux-orbstack/summary.json).
 
 ## Linux follow-up scope
 
 The macOS release decision above is unchanged. Linux execution support now has
 its own [66-case ledger](evidence/linux-support/acceptance.json), full local
-verification and disposable mounted-volume evidence. Its live-provider gate is
-blocked pending authorization for temporary credential transfer, and the Linux
-Codex host exercise is unrun. Do not use the macOS `release:check` result as a
-Linux release decision. No package or release has been published.
+verification and disposable mounted-volume evidence. Authorized live checks
+passed direct OpenRouter Nemotron and gateway Gemini reads and continuation,
+plus Gemini vision. All cleanup was confirmed and temporary credentials were
+removed. [Live evidence](evidence/linux-support/live-openrouter.json). The
+[Linux Codex connection](linux-host-verification.md) is prepared; actual host
+verification awaits tool reload. `release:check` now selects the platform ledger,
+with `--platform linux` available from macOS, and correctly reports these gates.
+No package or release has been published.

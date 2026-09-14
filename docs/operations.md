@@ -165,3 +165,9 @@ The current test fixtures require a writable `/private/tmp` directory on Linux.
 `scripts/linux-volume-canary.mjs` requires root in a disposable VM and mounts
 only its newly created 16 MiB tmpfs fixture. Do not run destructive canaries
 against existing mounts. Live checks remain explicitly opt-in.
+
+`npm run release:check` audits the current platform’s recorded qualification.
+From another OS, use `npm run release:check -- --platform linux` (or `darwin`).
+This checks the evidence ledger, not the current machine’s binary identities.
+Pending Linux external gates produce a nonzero exit. For the prepared actual
+Codex exercise, see [Linux host verification](linux-host-verification.md).

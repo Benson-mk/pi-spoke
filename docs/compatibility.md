@@ -1,7 +1,7 @@
 # Compatibility evidence
 
 Verification date: 2026-09-14. P0–P5 gates passed for the exact macOS host and pinned identities below.
-The source is release-ready but unpublished; Linux execution is implemented for the pinned OrbStack host; its separate external release gates remain unrun.
+The source is release-ready but unpublished; Linux execution is implemented for the pinned OrbStack host; its separate external release gates remain incomplete.
 
 | Component | Exact installed version | Registry revision |
 |---|---|---|
@@ -205,6 +205,10 @@ unconfirmed cleanup; this one fixture does not justify stronger general claims.
 
 [Linux acceptance](evidence/linux-support/acceptance.json) retains all 66 cases
 and separate release gates. Apple Events and Launch Services are macOS-only;
-Linux Unix-socket denial is exercised. Live integrations and a Linux Codex host
-exercise are not passed by fake-provider MCP tests. Existing macOS qualification
-must not be interpreted as Linux release readiness.
+Linux Unix-socket denial is exercised. Direct OpenRouter Nemotron and gateway
+Gemini passed sandboxed read and continuation; Gemini vision also passed.
+[Live evidence](evidence/linux-support/live-openrouter.json). All cleanup was
+confirmed and temporary credentials were removed. The earlier NVIDIA NIM
+failure is retained as history. A Linux Codex host exercise is prepared but not
+yet run; it is not passed by fake-provider MCP tests or transport discovery.
+Existing macOS qualification must not be interpreted as Linux release readiness.

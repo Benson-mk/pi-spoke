@@ -1,0 +1,12 @@
+{
+  "status": "PASS",
+  "scope": "OrbStack stdio transport discovery only; not actual Codex host verification",
+  "tools": [
+    "spoke_catalog",
+    "spoke_spawn",
+    "spoke_observe",
+    "spoke_send",
+    "spoke_cancel",
+    "spoke_sessions"
+  ]
+}

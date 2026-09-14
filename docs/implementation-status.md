@@ -3,7 +3,7 @@
 Target: 0.1.0; accepted specification 1.1; GitHub issue #1.
 Branch: `codex/implement-v0.1.0`. **Release readiness: READY on the qualified macOS host; unpublished.**
 Qualification is limited to macOS 15.6 (24G84), Darwin 24.6.0 arm64 and the
-exact pinned identities. Linux was tested in an OrbStack VM and remains unsupported. No push, package
+exact pinned identities. Linux execution is implemented for the pinned OrbStack VM; its external release gates remain incomplete. No push, package
 publication, or release has been performed.
 
 | Milestone | Outcome | Commit / evidence |
@@ -109,10 +109,11 @@ completed. Historical failures are retained with the new verification evidence.
 Local qualification covers real Pi with a fake provider, the public MCP contract,
 actual sandbox canaries, mounted tmpfs rejection and actual ENOSPC with receipt
 retention and verified unmount. All A01–A30/S01–S36 cases remain tracked in the
-[Linux ledger](evidence/linux-support/acceptance.json). External Linux live checks
-await explicit authorization to temporarily transfer supplied credentials and
-send disposable fixture data; no credentials have been copied. A Linux Codex
-host exercise remains unrun. Linux release readiness is not claimed.
+[Linux ledger](evidence/linux-support/acceptance.json). Operator-authorized Linux live checks passed direct OpenRouter Nemotron and
+gateway Gemini sandboxed reads and native continuation, plus Gemini vision.
+All cleanup was confirmed and temporary credentials were removed. The earlier
+NVIDIA NIM failure remains historical evidence. Only the actual Codex host
+exercise remains incomplete; Linux release readiness is not claimed.
 
 
 Verification: Linux `npm run verify` passed **43 tests**, with one macOS-only
@@ -121,3 +122,11 @@ supervised tools check. macOS regression passed **44 tests**, plus focused MCP
 and preflight checks after the final refinements. Build/typecheck passed. See
 [evidence](evidence/linux-support/verify.txt); the earlier drain race and
 one-second MCP polling timeout are retained alongside passing results.
+
+The release checker now selects the current platform ledger by default and
+accepts `--platform darwin|linux` for explicit audits. Linux cannot inherit the
+macOS release result. Six unit tests and strict typecheck passed on macOS and
+Linux after synchronizing the Linux ledger into the VM. The Linux MCP transport
+exposes all six tools and is registered as `pi_spoke_linux`; actual Codex
+verification awaits tool reload. See [Linux host setup](linux-host-verification.md)
+and [live evidence](evidence/linux-support/live-openrouter.json).

@@ -12,6 +12,44 @@ namespace, and read `structuredContent`, including `error` when `isError: true`.
 {"kind":"models","limit":25}
 ```
 
+### Model descriptions
+
+Use the returned model entries to inform an explicit selection:
+
+| Catalog field | Interpretation |
+|---|---|
+| `provider`, `id` | Exact identity to pass in `spoke_spawn.model`; preserve both even when display names or IDs overlap. |
+| `description` | Optional operator-written guidance about suitable uses, such as "For concise summaries and log inspection." |
+| `description_provenance` | `"operator configuration"` when a description is supplied; both description fields are null when none is configured. |
+| `input_modalities`, `context_window`, `max_output_tokens`, `reasoning`, `supported_thinking` | Capability metadata to check against the assignment; a description does not establish these capabilities. |
+
+When the user leaves model choice open, weigh the description with the task's
+needs and available metadata. Treat it as operator guidance, not benchmark
+evidence, a ranking, or a routing instruction. A missing description means the
+operator supplied no guidance; it says nothing about model quality. Preserve an
+explicit user model choice, and obtain current descriptions from the catalog
+rather than maintaining a fixed model list in this skill.
+
+`spoke_catalog` queries match case-insensitive substrings in descriptions as well
+as names, IDs, and providers. For example:
+
+```json
+{"kind":"models","query":"log inspection","limit":25}
+```
+
+This searches the returned text; it does not rank models by task suitability. If
+the query is too narrow, broaden it or list models without a query. Pass only
+`provider` and `id` in the spawn model reference; copying a complete catalog entry
+or adding `description` makes that strict input invalid.
+
+When asked to author or change descriptions, follow the checkout's
+`docs/operations.md`: they belong on `allowed_models` entries in the operator's
+pi-spoke configuration, matched by exact provider and ID, as a single line of
+1–512 characters. Restarting the MCP server loads the change. Pi's `models.json`
+and spawn requests are not description storage.
+
+### Capabilities and task input
+
 `spoke_catalog` for workspace capabilities and permission ceilings:
 
 ```json

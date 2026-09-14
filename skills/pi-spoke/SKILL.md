@@ -29,9 +29,12 @@ configure credentials or start a server by itself.
 When identifiers or ceilings are unknown, use `spoke_catalog`:
 
 - `kind: "models"`: select an exact `provider` and `id`, respecting an explicit
-  user choice. Catalog entries and configured authentication do not prove live
-  access. Omit `thinking` unless a supported value is known; report model failures
-  before considering a different model.
+  user choice. Read each model's `description` and `description_provenance` as
+  operator guidance about suitable tasks, alongside its capability metadata.
+  See [model descriptions](references/tool-guide.md#model-descriptions) for
+  interpretation and search. Catalog entries and configured authentication do not
+  prove live access. Omit `thinking` unless a supported value is known; report
+  model failures before considering a different model.
 - `kind: "tools", cwd`: inspect allowed tools and workspace write ceilings.
   Availability marked `preflight_required` still needs runtime validation.
 - `kind: "skills", cwd`: optionally discover `skill_id` values. Suggested skills

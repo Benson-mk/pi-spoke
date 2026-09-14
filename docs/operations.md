@@ -143,6 +143,26 @@ or a populated Pi snapshot establishes configuration; otherwise it is null
 (unknown). This never verifies entitlement and does not execute credential
 commands or refresh provider tokens.
 
+To explain what an allowed model is useful for, add an optional `description`
+to its entry in the pi-spoke configuration file's `allowed_models` array:
+
+```json
+{
+  "provider": "your-provider",
+  "id": "your-model-id",
+  "description": "For short text tasks and focused repository-file inspection."
+}
+```
+
+Use a single line of 1–512 characters. Keep the exact provider and model ID,
+and retain the other allowed entries. Restart the MCP server after editing.
+`spoke_catalog` returns the description with `description_provenance` set to
+`"operator configuration"`; both fields are null when no description is supplied.
+Catalog queries also match description text. This is operator guidance for the
+main agent, not a benchmark result or an automatic model-selection rule.
+Descriptions belong in the pi-spoke configuration, not Pi's `models.json` or
+the `spoke_spawn` model reference.
+
 All required release gates now pass for the pinned macOS host. The explicitly
 authorized OpenRouter retry passed read and continuation; earlier failures are
 retained as history. Plain doctor reports release_ready as null because it

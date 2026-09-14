@@ -63,11 +63,15 @@ export class Api {
       // credential metadata performs no key-command execution or token refresh.
       const storedProviders = new Set((await this.app.models.listCredentials()).map(item => item.providerId));
       items = this.app.models.getModels().filter(model => !this.app.config.allowed_models || this.app.config.allowed_models.some(allowed => allowed.provider === model.provider && allowed.id === model.id))
-        .map(model => ({ provider: model.provider, id: model.id, name: model.name, input_modalities: model.input, context_window: model.contextWindow,
-          max_output_tokens: model.maxTokens, reasoning: model.reasoning, supported_thinking: model.reasoning ? (model.thinkingLevelMap ? Object.entries(model.thinkingLevelMap).filter(([, value]) => value !== null).map(([level]) => level) : null) : ['off'],
-          thinking_metadata_complete: !model.reasoning,
-          authentication_configured: storedProviders.has(model.provider) || this.app.models.hasConfiguredAuth(model.provider) ? true : null, live_verified: false,
-          metadata_provenance: 'Pi ModelRuntime: built-in/cache/operator configuration', catalog_timestamp: this.catalogTimestamp }))
+        .map(model => {
+          const description = this.app.config.allowed_models?.find(allowed => allowed.provider === model.provider && allowed.id === model.id)?.description ?? null;
+          return { provider: model.provider, id: model.id, name: model.name, description,
+            description_provenance: description === null ? null : 'operator configuration', input_modalities: model.input, context_window: model.contextWindow,
+            max_output_tokens: model.maxTokens, reasoning: model.reasoning, supported_thinking: model.reasoning ? (model.thinkingLevelMap ? Object.entries(model.thinkingLevelMap).filter(([, value]) => value !== null).map(([level]) => level) : null) : ['off'],
+            thinking_metadata_complete: !model.reasoning,
+            authentication_configured: storedProviders.has(model.provider) || this.app.models.hasConfiguredAuth(model.provider) ? true : null, live_verified: false,
+            metadata_provenance: 'Pi ModelRuntime: built-in/cache/operator configuration', catalog_timestamp: this.catalogTimestamp };
+        })
         .sort((a,b) => (a.provider + ':' + a.id).localeCompare(b.provider + ':' + b.id));
     } else if (input.kind === 'skills') {
       if (!scope) fail('INVALID_ARGUMENT', 'cwd is required for skill discovery');
@@ -82,7 +86,7 @@ export class Api {
         mandatory_sandbox: true }));
     }
     if (input.query) { const query = input.query.toLowerCase(); items = items.filter(item => {
-      const value = item as { name?: string; description?: string; id?: string; provider?: string }; return [value.name,value.description,value.id,value.provider].some(field => field?.toLowerCase().includes(query));
+      const value = item as { name?: string; description?: string | null; id?: string; provider?: string }; return [value.name,value.description,value.id,value.provider].some(field => field?.toLowerCase().includes(query));
     }); }
     return page(items, input.cursor, input.limit, { kind: input.kind, cwd: scope?.cwd, query: input.query });
   }

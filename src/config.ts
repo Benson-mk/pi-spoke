@@ -15,7 +15,9 @@ export const configSchema = z.strictObject({
   skill_roots: z.array(z.strictObject({ id: z.string().regex(/^[a-zA-Z0-9_-]+$/), path: absolute })).default([]),
   project_skills: z.boolean().default(false),
   pi: z.strictObject({ auth_path: absolute, models_path: absolute.optional() }),
-  allowed_models: z.array(modelRef).optional(),
+  allowed_models: z.array(modelRef.extend({
+    description: z.string().trim().min(1).max(512).regex(/^[^\r\n]*$/, 'Use a single-line description').optional(),
+  })).optional(),
   limits: z.strictObject({
     max_active_runs: z.number().int().min(1).max(64).default(3),
     max_run_wall_time_ms: z.number().int().positive().default(1800000), max_run_turns: z.number().int().positive().default(64),

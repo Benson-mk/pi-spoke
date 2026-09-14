@@ -4,6 +4,43 @@ import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
 import { test, expect, vi } from 'vitest';
 import { httpProvider } from '../fixtures/http-provider.js';
+import { parseConfig } from '../../src/config.js';
+
+test('model descriptions survive MCP discovery and search without changing identity or starting inference', async () => {
+  const root = await realpath(await mkdtemp('/private/tmp/ps-model-description-')), cwd = join(root, 'project'); await mkdir(cwd);
+  const provider = await httpProvider(() => ({ text: 'unexpected inference' }));
+  const client = new Client({ name: 'model-description-fixture', version: '1.0.0' });
+  try {
+    const models = join(root, 'models.json'), configPath = join(root, 'config.json');
+    const providerConfig = { api: 'openai-completions', baseUrl: provider.url, apiKey: 'fake-secret-never-output', models: [{ id: 'shared' }, { id: 'hidden' }] };
+    await writeFile(models, JSON.stringify({ providers: { first: providerConfig, second: providerConfig } }));
+    const description = 'For concise summaries and log inspection.';
+    const config = parseConfig({ version: 2, state_dir: join(root, 'state'), scratch_dir: join(root, 'scratch'), workspace_roots: [cwd],
+      pi: { auth_path: join(root, 'auth'), models_path: models }, sandbox: { backend: 'srt', required: true, tool_network: 'none' },
+      allowed_models: [{ provider: 'first', id: 'shared', description }, { provider: 'second', id: 'shared' }] });
+    for (const invalid of ['', 'two\nlines', 'x'.repeat(513)]) {
+      expect(() => parseConfig({ ...config, allowed_models: [{ provider: 'first', id: 'shared', description: invalid }] })).toThrow();
+    }
+    await writeFile(configPath, JSON.stringify(config));
+    const transport = new StdioClientTransport({ command: process.execPath, args: [resolve('dist/cli.js'), 'serve', '--config', configPath, '--instance', 'test'], stderr: 'pipe' });
+    await client.connect(transport);
+    const call = async (name: string, args: Record<string, unknown>) => {
+      const result = await client.callTool({ name: 'spoke_' + name, arguments: args });
+      expect(JSON.stringify(result)).not.toContain('fake-secret-never-output');
+      return result.structuredContent as Record<string, any>;
+    };
+    const catalog = await call('catalog', { kind: 'models' });
+    expect(catalog.items).toHaveLength(2);
+    expect(catalog.items[0]).toMatchObject({ provider: 'first', id: 'shared', description, description_provenance: 'operator configuration', live_verified: false });
+    expect(catalog.items[1]).toMatchObject({ provider: 'second', id: 'shared', description: null, description_provenance: null });
+    expect((await call('catalog', { kind: 'models', query: 'LOG INSPECTION' })).items).toEqual([catalog.items[0]]);
+    expect((await call('catalog', { kind: 'models', query: 'hidden' })).items).toEqual([]);
+    const spawn = { request_key: 'invalid', task: 'fixture', cwd, tools: [], model: { provider: 'first', id: 'shared', description } };
+    expect((await call('spawn', spawn)).error.code).toBe('INVALID_ARGUMENT');
+    expect((await call('spawn', { ...spawn, model: { provider: 'first', id: 'hidden' } })).error.code).toBe('MODEL_NOT_ALLOWED');
+    expect(provider.requests).toHaveLength(0);
+  } finally { await client.close(); await provider.close(); await rm(root, { recursive: true, force: true }); }
+}, 20000);
 
 test('P4: compiled stdio six-tool public contract, durable receipts, questions, continuation, output and strict errors', async () => {
   const root = await realpath(await mkdtemp('/private/tmp/ps-mcp-')), cwd = join(root, 'p'); await mkdir(cwd);

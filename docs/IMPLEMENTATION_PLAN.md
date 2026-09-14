@@ -219,6 +219,8 @@ Filtering is deterministic name/description substring matching. Do not add embed
 
 Model entries include provider, model ID, display name, known input modalities, context window, maximum output, reasoning metadata, supported thinking options where known, authentication/configuration status, metadata provenance, and catalog timestamp. Cost metadata may be included only with its units and provenance; missing values are null, not zero.
 
+An operator may supply a short `description` on an `allowed_models` entry to explain suitable uses. Match it by exact provider and model ID. Catalog entries return `description` and `description_provenance: "operator configuration"`, or null for both when absent. Descriptions participate in substring searches; they are operator guidance, not measured capability claims, model rankings, or routing rules.
+
 Report `live_verified: false` unless an explicit external validation has actually been recorded. Configured credentials and a catalog entry do not prove current quota, entitlement, endpoint health, or successful access.
 
 Skill entries include stable `skill_id`, name, description, source root, file location, content hash, and metadata diagnostics. Do not return complete `SKILL.md` bodies. Tool entries describe actual capabilities, selected-workspace permission ceilings, mandatory exclusions, and sandbox readiness. For `bash`, explain that source is read-only unless separately granted shell-write roots, network is denied, and writable directories permit deletion as well as modification. Do not describe shell availability as unrestricted local execution.
@@ -721,6 +723,8 @@ The separate `config.scoped-edit.json` example permits `edit`, `write`, and `bas
 The `config.scoped-edit-with-output.json` example additionally permits an existing `build-output` directory as a shell-write ceiling. It is not granted to a run unless the main requests it. The example does not authorize full-workspace shell writes; backend-unsupported policies are explicit failures. Directories listed as roots must exist before they can be selected.
 
 `models_path` is optional and, when absent, uses Pi's built-in/cached catalog rather than project discovery. `skill_roots` defaults empty and `project_skills` defaults false. No model or permission configuration is chosen based on task category. An optional model allowlist remains access/cost policy, not routing.
+
+Each `allowed_models` entry requires `provider` and `id` and may include a `description`: a single line of 1–512 characters after trimming. Existing entries without descriptions remain valid. Descriptions are catalog metadata only; the MCP spawn `model` reference still accepts only `provider` and `id`. Restart the server after editing operator configuration.
 
 Implement these operator commands:
 

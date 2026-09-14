@@ -3,7 +3,7 @@
 Target: 0.1.0; accepted specification 1.1; GitHub issue #1.
 Branch: `codex/implement-v0.1.0`. **Release readiness: READY on the qualified macOS host; unpublished.**
 Qualification is limited to macOS 15.6 (24G84), Darwin 24.6.0 arm64 and the
-exact pinned identities. Linux remains unrun and rejected. No push, package
+exact pinned identities. Linux was tested in an OrbStack VM and remains unsupported. No push, package
 publication, or release has been performed.
 
 | Milestone | Outcome | Commit / evidence |
@@ -88,3 +88,11 @@ Such runs end interrupted with `cleanup=unconfirmed`; saved output and safe
 checkpoints do not imply cleanup. Explicit operator attestation is required for
 continuation. Project shell-write scopes remain explicitly unsupported.
 There is no unrestricted fallback, rollback, or automatic replay of uncertain work.
+
+Linux verification was subsequently run against commit `2e3523c` in an isolated
+Ubuntu 24.04.5 arm64 OrbStack VM: build/typecheck/install and 28 non-sandbox
+tests passed; all 16 sandbox tests failed on the macOS-specific adapter and
+fixtures. Bubblewrap itself passed a primitive launch/network-namespace probe.
+Linux remains unsupported; the existing release qualification is macOS-only.
+[Linux results](evidence/linux-orbstack/summary.json). The VM is stopped and
+retained as `pi-spoke-linux-test`; no live-provider credentials were copied.

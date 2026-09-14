@@ -1,0 +1,6 @@
+build 0
+typecheck 0
+test 0
+test:contract 0
+test:integration 0
+test:sandbox 1

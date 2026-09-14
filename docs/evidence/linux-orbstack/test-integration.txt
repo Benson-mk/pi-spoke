@@ -1,0 +1,26 @@
+
+> pi-spoke@0.1.0 test:integration
+> npm run build && vitest run tests/integration
+
+
+> pi-spoke@0.1.0 build
+> tsc -p tsconfig.json
+
+
+ RUN  v4.1.11 /home/benson/pi-spoke
+
+ ✓ tests/integration/service.test.ts (10 tests) 1183ms
+ ✓ tests/integration/mcp.test.ts (1 test) 1315ms
+   ✓ P4: compiled stdio six-tool public contract, durable receipts, questions, continuation, output and strict errors  1314ms
+ ✓ tests/integration/operator.test.ts (1 test) 693ms
+   ✓ P4: doctor is read-oriented; recovery refuses live recorded processes; GC preserves receipt tombstones  693ms
+ ✓ tests/integration/mcp-restart.test.ts (1 test) 2061ms
+   ✓ A17/A18/S32: actual supervisor death aborts its worker, retains receipts, and allows only explicit safe-session continuation  2061ms
+ ✓ tests/integration/helpers.test.ts (2 tests) 2921ms
+   ✓ fixed helper validates typed operations, protected paths, aliases and destructive authorized writes  2720ms
+
+ Test Files  5 passed (5)
+      Tests  15 passed (15)
+   Start at  11:15:08
+   Duration  8.98s (transform 95ms, setup 0ms, import 540ms, tests 8.17s, environment 0ms)
+

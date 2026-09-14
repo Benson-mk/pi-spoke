@@ -3,8 +3,7 @@
 Date: 2026-09-14. Outcome: required gates PASS for macOS 15.6 (24G84),
 Darwin 24.6.0 arm64 with the exact Node, Pi, MCP, SRT, compiler and binary
 identities in [compatibility](compatibility.md). This is a source-build
-qualification, not a package publication or release action. Linux is unrun
-and explicitly rejected; other platform/toolchain identities require qualification.
+qualification, not a package publication or release action. Linux was tested in an OrbStack VM and remains explicitly rejected; other platform/toolchain identities require qualification.
 
 | Required outcome | Authoritative evidence |
 |---|---|
@@ -48,3 +47,11 @@ Plain doctor does not run release qualification and now returns null for
 credential command execution, host setup or security-setting change was added.
 The existing temporary Codex verification connection must reload to display
 new diagnostics; its previously recorded six-tool workflow checks remain valid.
+
+Linux verification was subsequently run against commit `2e3523c` in an isolated
+Ubuntu 24.04.5 arm64 OrbStack VM: build/typecheck/install and 28 non-sandbox
+tests passed; all 16 sandbox tests failed on the macOS-specific adapter and
+fixtures. Bubblewrap itself passed a primitive launch/network-namespace probe.
+Linux remains unsupported; the existing release qualification is macOS-only.
+[Linux results](evidence/linux-orbstack/summary.json). The VM is stopped and
+retained as `pi-spoke-linux-test`; no live-provider credentials were copied.

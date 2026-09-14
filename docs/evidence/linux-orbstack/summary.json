@@ -1,0 +1,51 @@
+{
+  "status": "NOT_QUALIFIED",
+  "tested_commit": "2e3523c",
+  "date": "2026-09-14",
+  "environment": {
+    "vm": "pi-spoke-linux-test",
+    "manager": "OrbStack VM, not Docker",
+    "isolated": true,
+    "host_file_sharing": false,
+    "distribution": "Ubuntu 24.04.5 LTS",
+    "architecture": "arm64",
+    "kernel": "7.0.14-orbstack-00380-ga7e0a2dc9535",
+    "node": "24.15.0",
+    "bubblewrap": "0.9.0"
+  },
+  "results": {
+    "locked_install": "PASS",
+    "build": "PASS",
+    "typecheck": "PASS",
+    "unit": {
+      "passed": 5,
+      "failed": 0
+    },
+    "pi_contract": {
+      "passed": 8,
+      "failed": 0
+    },
+    "integration": {
+      "passed": 15,
+      "failed": 0
+    },
+    "sandbox": {
+      "passed": 0,
+      "failed": 16
+    },
+    "bubblewrap_launch_network_namespace_probe": "PASS; primitive only, not pi-spoke containment qualification"
+  },
+  "failure_causes": [
+    "Production adapter explicitly rejects non-darwin with SANDBOX_UNAVAILABLE",
+    "P0 launcher rejects unvalidated Linux wrapper shape with SANDBOX_POLICY_UNSUPPORTED",
+    "Tests and qualification use macOS-specific clang/Launch Services and sandbox-exec paths"
+  ],
+  "unrun": [
+    "Live providers on Linux; no credentials copied",
+    "Full Linux S01-S36 containment qualification; current adapter fails before boundary tests execute",
+    "Linux host integration"
+  ],
+  "safety": "No fallback enabled, no host security changes, no host source/credentials shared with VM",
+  "vm_final_state": "stopped and retained for reproduction",
+  "next_work": "Implement and qualify SRT bubblewrap/seccomp adapter and Linux identity pins; separate platform-specific fixtures; rerun complete acceptance coverage."
+}

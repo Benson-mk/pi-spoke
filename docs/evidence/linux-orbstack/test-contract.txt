@@ -1,0 +1,29 @@
+
+> pi-spoke@0.1.0 test:contract
+> npm run build && vitest run tests/contract
+
+
+> pi-spoke@0.1.0 build
+> tsc -p tsconfig.json
+
+
+ RUN  v4.1.11 /home/benson/pi-spoke
+
+ ✓ tests/contract/pi.test.ts (1 test) 27ms
+ ✓ tests/contract/admission.test.ts (2 tests) 1132ms
+   ✓ P2: image admission snapshots, model rejection and changed project context on continuation  584ms
+   ✓ P2: cancellation aborts an actual provider request while a sibling completes  548ms
+ ✓ tests/contract/lifecycle.test.ts (1 test) 2139ms
+   ✓ P5 A15/A16/A27: real child crash, provider choice, question cancellation and run limits stay isolated  2138ms
+ ✓ tests/contract/communication.test.ts (1 test) 473ms
+   ✓ P3: real worker persists notes, waits for a correlated reply, and records an improvement without applying it  472ms
+ ✓ tests/contract/supervised.test.ts (1 test) 787ms
+   ✓ real supervised Pi over local HTTP: no-tool handshake, native checkpoint and explicit continuation  786ms
+ ✓ tests/contract/skills.test.ts (1 test) 20ms
+ ✓ tests/contract/checkpoints.test.ts (1 test) 8ms
+
+ Test Files  7 passed (7)
+      Tests  8 passed (8)
+   Start at  11:14:58
+   Duration  6.86s (transform 97ms, setup 0ms, import 1.94s, tests 4.59s, environment 0ms)
+

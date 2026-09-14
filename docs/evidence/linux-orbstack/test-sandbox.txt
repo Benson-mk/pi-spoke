@@ -1,0 +1,332 @@
+
+> pi-spoke@0.1.0 test:sandbox
+> npm run build && vitest run tests/sandbox
+
+
+> pi-spoke@0.1.0 build
+> tsc -p tsconfig.json
+
+
+ RUN  v4.1.11 /home/benson/pi-spoke
+
+stdout | tests/sandbox/p0.test.ts > P0 S04–S08/S11/S12: real source protection with permitted scratch and separate writer envelope
+{"platform":"linux","arch":"arm64","os":"7.0.14-orbstack-00380-ga7e0a2dc9535","error":"Error: SANDBOX_POLICY_UNSUPPORTED: P0 wrapper shape has not been validated on this platform","policyHash":"1e5d605239d2d3a4c932b21509ca5dc78b80f840a5cc5b880a16518ce0015944","lockHash":"27101405527f2152175bf4c3eb42d31d23527b7beb490372a01f5d05367ee16f","sourceHash":"5eeacb2dfe8a8c673fb8df74de7f66d041e21952d334fcc9a085a06b7f8dd8ca","outsideHash":"5737c78207a56d81e0c5a6efe0bf1ee178d2dc5b2682bce2f8010c00e266c1ff"}
+
+stdout | tests/sandbox/p0.test.ts > P0 S20: investigate writable hard-link alias to read-only source
+{"platform":"linux","arch":"arm64","os":"7.0.14-orbstack-00380-ga7e0a2dc9535","error":"Error: SANDBOX_POLICY_UNSUPPORTED: P0 wrapper shape has not been validated on this platform","policyHash":"24b3a22063ff6a37fce07b8ef440a8d2c12a8b09dc6629813f007abd07d3f735","lockHash":"27101405527f2152175bf4c3eb42d31d23527b7beb490372a01f5d05367ee16f","sourceHash":"5eeacb2dfe8a8c673fb8df74de7f66d041e21952d334fcc9a085a06b7f8dd8ca","outsideHash":"5737c78207a56d81e0c5a6efe0bf1ee178d2dc5b2682bce2f8010c00e266c1ff"}
+
+stdout | tests/sandbox/p0.test.ts > P0 S14/S23: missing protected targets and nested read denies survive workspace reopening
+{"platform":"linux","arch":"arm64","os":"7.0.14-orbstack-00380-ga7e0a2dc9535","error":"Error: SANDBOX_POLICY_UNSUPPORTED: P0 wrapper shape has not been validated on this platform","policyHash":"58a94ff7e5eef0b4572e7746c5715915114102b65163401c2c9bda1f59bd162f","lockHash":"27101405527f2152175bf4c3eb42d31d23527b7beb490372a01f5d05367ee16f","sourceHash":"5eeacb2dfe8a8c673fb8df74de7f66d041e21952d334fcc9a085a06b7f8dd8ca","outsideHash":"5737c78207a56d81e0c5a6efe0bf1ee178d2dc5b2682bce2f8010c00e266c1ff"}
+
+stdout | tests/sandbox/p0.test.ts > P0 S25/S26: actual loopback IPv4/IPv6, listener and Unix socket denial
+{"platform":"linux","arch":"arm64","os":"7.0.14-orbstack-00380-ga7e0a2dc9535","error":"Error: SANDBOX_POLICY_UNSUPPORTED: P0 wrapper shape has not been validated on this platform","policyHash":"87ad6560efb07ab1c4649e0890d2ec7d42603b6bedba3dd77c85f1145cf6221c","lockHash":"27101405527f2152175bf4c3eb42d31d23527b7beb490372a01f5d05367ee16f","sourceHash":"5eeacb2dfe8a8c673fb8df74de7f66d041e21952d334fcc9a085a06b7f8dd8ca","outsideHash":"5737c78207a56d81e0c5a6efe0bf1ee178d2dc5b2682bce2f8010c00e266c1ff"}
+
+stdout | tests/sandbox/p0.test.ts > P0 S28: concurrent launcher policies do not leak writer authority
+{"platform":"linux","arch":"arm64","os":"7.0.14-orbstack-00380-ga7e0a2dc9535","error":"Error: SANDBOX_POLICY_UNSUPPORTED: P0 wrapper shape has not been validated on this platform","policyHash":"3824560e4e0e82397873056dced1e7e8d33bad4fc7bc655f4fa32834ae0638cd","lockHash":"27101405527f2152175bf4c3eb42d31d23527b7beb490372a01f5d05367ee16f","sourceHash":"5eeacb2dfe8a8c673fb8df74de7f66d041e21952d334fcc9a085a06b7f8dd8ca","outsideHash":"5737c78207a56d81e0c5a6efe0bf1ee178d2dc5b2682bce2f8010c00e266c1ff"}
+
+stdout | tests/sandbox/p0.test.ts > P0 S28: concurrent launcher policies do not leak writer authority
+{"platform":"linux","arch":"arm64","os":"7.0.14-orbstack-00380-ga7e0a2dc9535","error":"Error: SANDBOX_POLICY_UNSUPPORTED: P0 wrapper shape has not been validated on this platform","policyHash":"cfb4b188232fbc16a574d47a3ae577defce9305aca6464c2ce03fe8b123b6afa","lockHash":"27101405527f2152175bf4c3eb42d31d23527b7beb490372a01f5d05367ee16f","sourceHash":"5eeacb2dfe8a8c673fb8df74de7f66d041e21952d334fcc9a085a06b7f8dd8ca","outsideHash":"5737c78207a56d81e0c5a6efe0bf1ee178d2dc5b2682bce2f8010c00e266c1ff"}
+
+stdout | tests/sandbox/p0.test.ts > P0 S27/S29: hostile wrapper text cannot write on the host; ordinary failures stay ordinary
+{"platform":"linux","arch":"arm64","os":"7.0.14-orbstack-00380-ga7e0a2dc9535","error":"Error: SANDBOX_POLICY_UNSUPPORTED: P0 wrapper shape has not been validated on this platform","policyHash":"cc6da7568cde8fea62b4045b1854c698ff1dba626e4c60199fd9cf1a04dcbaf1","lockHash":"27101405527f2152175bf4c3eb42d31d23527b7beb490372a01f5d05367ee16f","sourceHash":"5eeacb2dfe8a8c673fb8df74de7f66d041e21952d334fcc9a085a06b7f8dd8ca","outsideHash":"5737c78207a56d81e0c5a6efe0bf1ee178d2dc5b2682bce2f8010c00e266c1ff"}
+
+ ❯ tests/sandbox/p0.test.ts (6 tests | 6 failed) 813ms
+   × P0 S04–S08/S11/S12: real source protection with permitted scratch and separate writer envelope 202ms
+   × P0 S20: investigate writable hard-link alias to read-only source 219ms
+   × P0 S14/S23: missing protected targets and nested read denies survive workspace reopening 105ms
+   × P0 S25/S26: actual loopback IPv4/IPv6, listener and Unix socket denial 95ms
+   × P0 S28: concurrent launcher policies do not leak writer authority 97ms
+   × P0 S27/S29: hostile wrapper text cannot write on the host; ordinary failures stay ordinary 94ms
+ ❯ tests/sandbox/security-matrix.test.ts (1 test | 1 failed) 10ms
+   × P5 S05–S10/S15–S19/S22/S24: production helper and shell containment against disposable metadata, aliases, environment and source canaries 9ms
+ ❯ tests/sandbox/skills.test.ts (1 test | 1 failed) 50ms
+   × P3: two optional skills remain unread; selected external resources are sandbox-readable and immutable 49ms
+ ❯ tests/sandbox/supervised-tools.test.ts (1 test | 1 failed) 31ms
+   × real Pi worker uses guarded read/search/write/edit through actual SRT; shell authority stays separate 31ms
+ ❯ tests/sandbox/mcp.test.ts (1 test | 1 failed) 10422ms
+   × P5 public MCP: guarded file execution and honest shell cancellation with a healthy sibling 10421ms
+ ❯ tests/sandbox/live-gate.test.ts (1 test | 1 failed) 842ms
+   × live harness requires actual read results and continuation; shared provider remains partial 842ms
+ ❯ tests/sandbox/launch-services.test.ts (1 test | 1 failed) 5ms
+   × S26: Launch Services cannot start a disposable background app outside the tool sandbox 5ms
+ ❯ tests/sandbox/descendants.test.ts (1 test | 1 failed) 10ms
+   × S32 characterization: detached descendant stays contained; wrapper exit is never reported as verified cleanup 9ms
+ ❯ tests/sandbox/upgrade.test.ts (1 test | 1 failed) 107ms
+   × S35: a changed real compiler copy invalidates its proof before a launcher starts 106ms
+ ❯ tests/sandbox/dns.test.ts (1 test | 1 failed) 11ms
+   × S25: direct DNS resolver cannot send a query to a controlled local UDP endpoint 11ms
+ ❯ tests/sandbox/race.test.ts (1 test | 1 failed) 19ms
+   × S21/S27: ancestor swaps cannot mutate an outside canary; missing qualified runtime fails closed 18ms
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 16 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/sandbox/descendants.test.ts > S32 characterization: detached descendant stays contained; wrapper exit is never reported as verified cleanup
+Error: This build has only qualified the macOS adapter baseline
+ ❯ fail src/core/errors.ts:4:69
+      2|   constructor(readonly code: string, message = code, readonly safeToRe…
+      3| }
+      4| export function fail(code: string, message?: string): never { throw ne…
+       |                                                                     ^
+      5|
+ ❯ Sandbox.invoke src/sandbox/backend.ts:34:34
+ ❯ Sandbox.tool src/sandbox/backend.ts:91:33
+ ❯ tests/sandbox/descendants.test.ts:24:34
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/16]⎯
+
+ FAIL  tests/sandbox/dns.test.ts > S25: direct DNS resolver cannot send a query to a controlled local UDP endpoint
+Error: This build has only qualified the macOS adapter baseline
+ ❯ fail src/core/errors.ts:4:69
+      2|   constructor(readonly code: string, message = code, readonly safeToRe…
+      3| }
+      4| export function fail(code: string, message?: string): never { throw ne…
+       |                                                                     ^
+      5|
+ ❯ Sandbox.invoke src/sandbox/backend.ts:34:34
+ ❯ Sandbox.tool src/sandbox/backend.ts:91:33
+ ❯ tests/sandbox/dns.test.ts:21:32
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/16]⎯
+
+ FAIL  tests/sandbox/launch-services.test.ts > S26: Launch Services cannot start a disposable background app outside the tool sandbox
+Error: spawn /usr/bin/clang ENOENT
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/16]⎯
+
+ FAIL  tests/sandbox/live-gate.test.ts > live harness requires actual read results and continuation; shared provider remains partial
+AssertionError: expected 'FAIL' to be 'PARTIAL' // Object.is equality
+
+Expected: "PARTIAL"
+Received: "FAIL"
+
+ ❯ tests/sandbox/live-gate.test.ts:35:31
+     33|       expect(result.code).toBe(1);
+     34|       const evidence = JSON.parse(result.stdout);
+     35|       expect(evidence.status).toBe(reads ? 'PARTIAL' : 'FAIL');
+       |                               ^
+     36|       expect(evidence.distinct_provider_configurations).toBe(false);
+     37|       expect(evidence.evidence).toHaveLength(reads ? 5 : 3);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/16]⎯
+
+ FAIL  tests/sandbox/mcp.test.ts > P5 public MCP: guarded file execution and honest shell cancellation with a healthy sibling
+AssertionError: expected 'failed' to be 'completed' // Object.is equality
+
+Expected: "completed"
+Received: "failed"
+
+ ❯ vi.waitFor.timeout tests/sandbox/mcp.test.ts:23:129
+     21|   try{
+     22|     await client.connect(transport);const input={request_key:'read',ta…
+     23|     const first=await call('spawn',input);await vi.waitFor(async()=>ex…
+       |                                                                                                                                 ^
+     24|     expect(await readFile(join(cwd,'source'),'utf8')).toBe('canary');
+     25|     const shell=await call('spawn',{...input,request_key:'shell',task:…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/16]⎯
+
+ FAIL  tests/sandbox/p0.test.ts > P0 S04–S08/S11/S12: real source protection with permitted scratch and separate writer envelope
+AssertionError: expected 'Error: SANDBOX_POLICY_UNSUPPORTED: P0…' to be undefined
+
+- Expected:
+undefined
+
++ Received:
+"Error: SANDBOX_POLICY_UNSUPPORTED: P0 wrapper shape has not been validated on this platform"
+
+ ❯ Object.run tests/sandbox/p0.test.ts:33:34
+     31|     console.log(JSON.stringify({ platform: platform(), arch: arch(), o…
+     32|       lockHash: hash(await readFile('package-lock.json')), sourceHash:…
+     33|     expect(result.error, stderr).toBeUndefined();
+       |                                  ^
+     34|     return result;
+     35|   }
+ ❯ tests/sandbox/p0.test.ts:51:18
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/16]⎯
+
+ FAIL  tests/sandbox/p0.test.ts > P0 S20: investigate writable hard-link alias to read-only source
+AssertionError: expected 'Error: SANDBOX_POLICY_UNSUPPORTED: P0…' to be undefined
+
+- Expected:
+undefined
+
++ Received:
+"Error: SANDBOX_POLICY_UNSUPPORTED: P0 wrapper shape has not been validated on this platform"
+
+ ❯ Object.run tests/sandbox/p0.test.ts:33:34
+     31|     console.log(JSON.stringify({ platform: platform(), arch: arch(), o…
+     32|       lockHash: hash(await readFile('package-lock.json')), sourceHash:…
+     33|     expect(result.error, stderr).toBeUndefined();
+       |                                  ^
+     34|     return result;
+     35|   }
+ ❯ tests/sandbox/p0.test.ts:73:19
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/16]⎯
+
+ FAIL  tests/sandbox/p0.test.ts > P0 S14/S23: missing protected targets and nested read denies survive workspace reopening
+AssertionError: expected 'Error: SANDBOX_POLICY_UNSUPPORTED: P0…' to be undefined
+
+- Expected:
+undefined
+
++ Received:
+"Error: SANDBOX_POLICY_UNSUPPORTED: P0 wrapper shape has not been validated on this platform"
+
+ ❯ Object.run tests/sandbox/p0.test.ts:33:34
+     31|     console.log(JSON.stringify({ platform: platform(), arch: arch(), o…
+     32|       lockHash: hash(await readFile('package-lock.json')), sourceHash:…
+     33|     expect(result.error, stderr).toBeUndefined();
+       |                                  ^
+     34|     return result;
+     35|   }
+ ❯ tests/sandbox/p0.test.ts:96:18
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/16]⎯
+
+ FAIL  tests/sandbox/p0.test.ts > P0 S25/S26: actual loopback IPv4/IPv6, listener and Unix socket denial
+AssertionError: expected 'Error: SANDBOX_POLICY_UNSUPPORTED: P0…' to be undefined
+
+- Expected:
+undefined
+
++ Received:
+"Error: SANDBOX_POLICY_UNSUPPORTED: P0 wrapper shape has not been validated on this platform"
+
+ ❯ Object.run tests/sandbox/p0.test.ts:33:34
+     31|     console.log(JSON.stringify({ platform: platform(), arch: arch(), o…
+     32|       lockHash: hash(await readFile('package-lock.json')), sourceHash:…
+     33|     expect(result.error, stderr).toBeUndefined();
+       |                                  ^
+     34|     return result;
+     35|   }
+ ❯ tests/sandbox/p0.test.ts:118:20
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/16]⎯
+
+ FAIL  tests/sandbox/p0.test.ts > P0 S28: concurrent launcher policies do not leak writer authority
+AssertionError: expected 'Error: SANDBOX_POLICY_UNSUPPORTED: P0…' to be undefined
+
+- Expected:
+undefined
+
++ Received:
+"Error: SANDBOX_POLICY_UNSUPPORTED: P0 wrapper shape has not been validated on this platform"
+
+ ❯ Object.run tests/sandbox/p0.test.ts:33:34
+     31|     console.log(JSON.stringify({ platform: platform(), arch: arch(), o…
+     32|       lockHash: hash(await readFile('package-lock.json')), sourceHash:…
+     33|     expect(result.error, stderr).toBeUndefined();
+       |                                  ^
+     34|     return result;
+     35|   }
+ ❯ tests/sandbox/p0.test.ts:128:27
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/16]⎯
+
+ FAIL  tests/sandbox/p0.test.ts > P0 S27/S29: hostile wrapper text cannot write on the host; ordinary failures stay ordinary
+AssertionError: expected 'Error: SANDBOX_POLICY_UNSUPPORTED: P0…' to be undefined
+
+- Expected:
+undefined
+
++ Received:
+"Error: SANDBOX_POLICY_UNSUPPORTED: P0 wrapper shape has not been validated on this platform"
+
+ ❯ Object.run tests/sandbox/p0.test.ts:33:34
+     31|     console.log(JSON.stringify({ platform: platform(), arch: arch(), o…
+     32|       lockHash: hash(await readFile('package-lock.json')), sourceHash:…
+     33|     expect(result.error, stderr).toBeUndefined();
+       |                                  ^
+     34|     return result;
+     35|   }
+ ❯ tests/sandbox/p0.test.ts:147:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[11/16]⎯
+
+ FAIL  tests/sandbox/race.test.ts > S21/S27: ancestor swaps cannot mutate an outside canary; missing qualified runtime fails closed
+Error: This build has only qualified the macOS adapter baseline
+ ❯ fail src/core/errors.ts:4:69
+      2|   constructor(readonly code: string, message = code, readonly safeToRe…
+      3| }
+      4| export function fail(code: string, message?: string): never { throw ne…
+       |                                                                     ^
+      5|
+ ❯ Sandbox.invoke src/sandbox/backend.ts:34:34
+ ❯ Sandbox.tool src/sandbox/backend.ts:106:31
+ ❯ tests/sandbox/race.test.ts:19:39
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[12/16]⎯
+
+ FAIL  tests/sandbox/security-matrix.test.ts > P5 S05–S10/S15–S19/S22/S24: production helper and shell containment against disposable metadata, aliases, environment and source canaries
+Error: This build has only qualified the macOS adapter baseline
+ ❯ fail src/core/errors.ts:4:69
+      2|   constructor(readonly code: string, message = code, readonly safeToRe…
+      3| }
+      4| export function fail(code: string, message?: string): never { throw ne…
+       |                                                                     ^
+      5|
+ ❯ Sandbox.invoke src/sandbox/backend.ts:34:34
+ ❯ Sandbox.tool src/sandbox/backend.ts:91:33
+ ❯ tests/sandbox/security-matrix.test.ts:24:35
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[13/16]⎯
+
+ FAIL  tests/sandbox/skills.test.ts > P3: two optional skills remain unread; selected external resources are sandbox-readable and immutable
+AssertionError: expected 'failed' to be 'completed' // Object.is equality
+
+Expected: "completed"
+Received: "failed"
+
+ ❯ tests/sandbox/skills.test.ts:29:51
+     27|     const input = { request_key: 'optional', task: 'decide independent…
+     28|     const first = await app.service.spawn(input); await app.service.dr…
+     29|     expect(app.store.getRun(first.run_id)?.state).toBe('completed'); e…
+       |                                                   ^
+     30|     expect(JSON.stringify(provider.requests[0])).toContain('alpha expe…
+     31|     const second = await app.service.send({ kind: 'continue', request_…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[14/16]⎯
+
+ FAIL  tests/sandbox/supervised-tools.test.ts > real Pi worker uses guarded read/search/write/edit through actual SRT; shell authority stays separate
+AssertionError: {"protocol_version":1,"run":{"id":"run_d025b433-e2d7-4928-9329-fa2acfdc2344","sessionId":"ses_8e75bc87-36a2-4ff1-ae2f-eaf8cd74663e","input":{"request_key":"tools","task":"exercise tools","cwd":"/private/tmp/ps-tools-ceCLQp/project","model":{"provider":"fixture","id":"fixture-model"},"tools":["edit","find","grep","ls","read","write"],"permissions":{"file_write_roots":["/private/tmp/ps-tools-ceCLQp/project"],"shell_write_roots":[]},"suggested_skills":[],"project_context":"agents","context_files":[],"attachments":[],"limits":{}},"state":"failed","created":1789355721901,"updated":1789355721905,"effective":null,"reason":"SANDBOX_UNAVAILABLE","cleanup":"confirmed","outputPath":null},"questions":[],"events":[{"seq":1,"runId":"run_d025b433-e2d7-4928-9329-fa2acfdc2344","type":"accepted","payload":{"protocol_version":1,"session_id":"ses_8e75bc87-36a2-4ff1-ae2f-eaf8cd74663e","run_id":"run_d025b433-e2d7-4928-9329-fa2acfdc2344","state":"starting","receipt":"accepted","effective_config":null},"created":1789355721902,"source":"c25d3457-804d-430a-ae34-39f1c7a94602"},{"seq":2,"runId":"run_d025b433-e2d7-4928-9329-fa2acfdc2344","type":"failed","payload":{"state":"failed","reason":"SANDBOX_UNAVAILABLE","cleanup_status":"confirmed"},"created":1789355721905,"source":"d78fe155-0209-49c0-bf47-d7a4a8cf1c70"}],"timed_out":false,"durability_error":null}: expected { …(10) } to match object { state: 'completed', …(1) }
+(19 matching properties omitted from actual)
+
+- Expected
++ Received
+
+  {
+    "cleanup": "confirmed",
+-   "state": "completed",
++   "state": "failed",
+  }
+
+ ❯ tests/sandbox/supervised-tools.test.ts:34:64
+     32|       tools: calls.map(call => call.name), permissions: { file_write_r…
+     33|     await service.drain(); const run = store.getRun(receipt.run_id)!;
+     34|     expect(run, JSON.stringify(await service.observe(run.id))).toMatch…
+       |                                                                ^
+     35|     expect(await readFile(join(cwd, 'source.txt'), 'utf8')).toBe('afte…
+     36|     expect(await readFile(join(cwd, 'new/nested.txt'), 'utf8')).toBe('…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[15/16]⎯
+
+ FAIL  tests/sandbox/upgrade.test.ts > S35: a changed real compiler copy invalidates its proof before a launcher starts
+Error: ENOENT: no such file or directory, realpath '/usr/bin/sandbox-exec'
+ ❯ installedQualification src/sandbox/qualification.ts:20:92
+     18|   const entries = await Promise.all(files.map(async file => [relative(…
+     19|   return { platform: platform(), architecture: arch(), os: release(), …
+     20|     node: await hash(process.execPath), bash: await hash('/bin/bash'),…
+       |                                                                                            ^
+     21|     compiler: createHash('sha256').update(JSON.stringify(entries)).dig…
+     22| }
+ ❯ tests/sandbox/upgrade.test.ts:20:25
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[16/16]⎯
+
+
+ Test Files  11 failed (11)
+      Tests  16 failed (16)
+   Start at  11:15:20
+   Duration  13.61s (transform 134ms, setup 0ms, import 787ms, tests 12.32s, environment 0ms)
+

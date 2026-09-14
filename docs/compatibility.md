@@ -1,7 +1,7 @@
 # Compatibility evidence
 
 Verification date: 2026-09-14. P0–P5 gates passed for the exact macOS host and pinned identities below.
-The source is release-ready but unpublished; Linux is unrun and rejected.
+The source is release-ready but unpublished; Linux was tested in an OrbStack VM and remains unsupported.
 
 | Component | Exact installed version | Registry revision |
 |---|---|---|
@@ -154,7 +154,7 @@ The subsequently selected `iFiy/spark-x2.5-4b` passed sandboxed read and native
 continuation with confirmed cleanup: [Spark results](evidence/live-spark-macos.json).
 It is a verified tool-capable alternative to the failing Llama configuration,
 using the same gateway integration.
-Linux is not run and is not claimed supported. An enclosing Codex
+Linux was tested in an OrbStack VM and is not qualified. An enclosing Codex
 sandbox blocks SRT socket creation; run disposable canaries on an authorized
 host boundary. That setup failure is not successful containment.
 
@@ -170,3 +170,11 @@ read and native continuation with confirmed cleanup. Together with gateway
 Gemini vision, this satisfies the two-integration live gate.
 [Retry evidence](evidence/live-openrouter-retry-macos.json). Earlier timeout and
 blocked observations above remain historical evidence, not current blockers.
+
+Linux verification was subsequently run against commit `2e3523c` in an isolated
+Ubuntu 24.04.5 arm64 OrbStack VM: build/typecheck/install and 28 non-sandbox
+tests passed; all 16 sandbox tests failed on the macOS-specific adapter and
+fixtures. Bubblewrap itself passed a primitive launch/network-namespace probe.
+Linux remains unsupported; the existing release qualification is macOS-only.
+[Linux results](evidence/linux-orbstack/summary.json). The VM is stopped and
+retained as `pi-spoke-linux-test`; no live-provider credentials were copied.

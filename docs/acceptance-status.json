@@ -1425,7 +1425,7 @@
     {
       "id": "platform-release-qualification",
       "status": "PASS",
-      "evidence": "Qualified macOS 15.6 (24G84), Darwin 24.6.0 arm64 with exact pinned toolchain only. All 66 cases, operator-run Apple Events, actual Codex host, and two live integrations passed. Linux unrun and rejected."
+      "evidence": "Qualified macOS 15.6 (24G84), Darwin 24.6.0 arm64 with exact pinned toolchain only. All 66 cases, operator-run Apple Events, actual Codex host, and two live integrations passed. Linux subsequently tested in OrbStack: 28 non-sandbox tests PASS, 16 sandbox tests FAIL; remains rejected and outside qualification. See docs/evidence/linux-orbstack/summary.json."
     }
   ]
 }

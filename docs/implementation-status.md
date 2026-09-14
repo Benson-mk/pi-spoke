@@ -1,9 +1,9 @@
 # Implementation status
 
 Target: 0.1.0; accepted specification 1.1; GitHub issue #1.
-Branch: `codex/implement-v0.1.0`. **Release readiness: READY on the qualified macOS host; unpublished.**
+Branch: `codex/implement-v0.1.0`. **Release readiness: READY on the qualified macOS host and Linux VM; unpublished.**
 Qualification is limited to macOS 15.6 (24G84), Darwin 24.6.0 arm64 and the
-exact pinned identities. Linux execution is implemented for the pinned OrbStack VM; its external release gates remain incomplete. No push, package
+exact pinned identities. Linux is separately qualified on the pinned OrbStack VM. No push, package
 publication, or release has been performed.
 
 | Milestone | Outcome | Commit / evidence |
@@ -94,7 +94,7 @@ Ubuntu 24.04.5 arm64 OrbStack VM: build/typecheck/install and 28 non-sandbox
 tests passed; all 16 sandbox tests failed on the macOS-specific adapter and
 fixtures. Bubblewrap itself passed a primitive launch/network-namespace probe.
 That historical failure led to the Linux adapter below. The existing release
-qualification remains macOS-only. [Initial Linux results](evidence/linux-orbstack/summary.json).
+qualification at that point remained macOS-only. [Initial Linux results](evidence/linux-orbstack/summary.json).
 
 
 ## Linux follow-up
@@ -112,8 +112,8 @@ retention and verified unmount. All A01–A30/S01–S36 cases remain tracked in 
 [Linux ledger](evidence/linux-support/acceptance.json). Operator-authorized Linux live checks passed direct OpenRouter Nemotron and
 gateway Gemini sandboxed reads and native continuation, plus Gemini vision.
 All cleanup was confirmed and temporary credentials were removed. The earlier
-NVIDIA NIM failure remains historical evidence. Only the actual Codex host
-exercise remains incomplete; Linux release readiness is not claimed.
+NVIDIA NIM failure remains historical evidence. The actual registered Codex host exercise also passed; Linux release readiness
+is qualified only for the pinned OrbStack VM.
 
 
 Verification: Linux `npm run verify` passed **43 tests**, with one macOS-only
@@ -127,6 +127,18 @@ The release checker now selects the current platform ledger by default and
 accepts `--platform darwin|linux` for explicit audits. Linux cannot inherit the
 macOS release result. Six unit tests and strict typecheck passed on macOS and
 Linux after synchronizing the Linux ledger into the VM. The Linux MCP transport
-exposes all six tools and is registered as `pi_spoke_linux`; actual Codex
-verification awaits tool reload. See [Linux host setup](linux-host-verification.md)
+exposed all six registered tools and the actual Codex checklist passed. The
+temporary `pi_spoke_linux` registration and VM credentials were removed. See [Linux host setup](linux-host-verification.md)
 and [live evidence](evidence/linux-support/live-openrouter.json).
+
+Final Linux host verification passed sandboxed read, question/reply, native
+continuation, steering and cancellation with confirmed cleanup. The initial
+host fixture exceeded SRT’s Unix socket pathname limit; shortening its canonical
+scratch path fixed setup. A late steering request correctly rejected after
+completion; a separate multi-step fixture proved delivery. Both observations
+remain in [host evidence](evidence/linux-support/codex-host.json). The Linux
+ledger now has no remaining gates. Codex ran on macOS; native Linux Codex and
+unpinned Linux identities are not qualified.
+
+[Final Linux release check](evidence/linux-support/release-check-final.json):
+`release_ready: true`, no remaining mandatory gates.

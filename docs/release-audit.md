@@ -3,7 +3,7 @@
 Date: 2026-09-14. Outcome: required gates PASS for macOS 15.6 (24G84),
 Darwin 24.6.0 arm64 with the exact Node, Pi, MCP, SRT, compiler and binary
 identities in [compatibility](compatibility.md). This is a source-build
-qualification, not a package publication or release action. Linux execution is implemented on its pinned OrbStack identity; its separate external release gates remain incomplete. Other platform/toolchain identities require qualification.
+qualification, not a package publication or release action. Linux is separately release-qualified on its pinned OrbStack identity; see the follow-up evidence below. Other platform/toolchain identities require qualification.
 
 | Required outcome | Authoritative evidence |
 |---|---|
@@ -63,7 +63,11 @@ verification and disposable mounted-volume evidence. Authorized live checks
 passed direct OpenRouter Nemotron and gateway Gemini reads and continuation,
 plus Gemini vision. All cleanup was confirmed and temporary credentials were
 removed. [Live evidence](evidence/linux-support/live-openrouter.json). The
-[Linux Codex connection](linux-host-verification.md) is prepared; actual host
-verification awaits tool reload. `release:check` now selects the platform ledger,
-with `--platform linux` available from macOS, and correctly reports these gates.
+[Linux Codex host exercise](linux-host-verification.md) passed through actual
+registered tools, with all worker cleanup confirmed. Temporary registration and
+credential copies were removed. `release:check` now selects the platform ledger,
+with `--platform linux` available from macOS, and now reports no remaining Linux gates.
 No package or release has been published.
+
+[Final Linux release check](evidence/linux-support/release-check-final.json):
+`release_ready: true`, no remaining mandatory gates.

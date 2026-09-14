@@ -169,5 +169,6 @@ against existing mounts. Live checks remain explicitly opt-in.
 `npm run release:check` audits the current platform’s recorded qualification.
 From another OS, use `npm run release:check -- --platform linux` (or `darwin`).
 This checks the evidence ledger, not the current machine’s binary identities.
-Pending Linux external gates produce a nonzero exit. For the prepared actual
-Codex exercise, see [Linux host verification](linux-host-verification.md).
+The pinned Linux ledger now passes; future incomplete gates produce a nonzero
+exit. Keep scratch paths short enough for SRT’s Unix socket names after the
+instance/run suffixes are appended. For the completed actual Codex exercise, see [Linux host verification](linux-host-verification.md).

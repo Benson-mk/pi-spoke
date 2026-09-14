@@ -1,7 +1,7 @@
 # Compatibility evidence
 
 Verification date: 2026-09-14. P0–P5 gates passed for the exact macOS host and pinned identities below.
-The source is release-ready but unpublished; Linux execution is implemented for the pinned OrbStack host; its separate external release gates remain incomplete.
+The source is release-ready but unpublished; Linux execution is implemented for the pinned OrbStack host; its separate external release gates have passed.
 
 | Component | Exact installed version | Registry revision |
 |---|---|---|
@@ -175,8 +175,7 @@ Linux verification was subsequently run against commit `2e3523c` in an isolated
 Ubuntu 24.04.5 arm64 OrbStack VM: build/typecheck/install and 28 non-sandbox
 tests passed; all 16 sandbox tests failed on the macOS-specific adapter and
 fixtures. Bubblewrap itself passed a primitive launch/network-namespace probe.
-That historical failure led to the Linux adapter below. The existing release
-qualification remains macOS-only. [Initial Linux results](evidence/linux-orbstack/summary.json).
+That historical failure led to the Linux adapter below. The release qualification at that point remained macOS-only. [Initial Linux results](evidence/linux-orbstack/summary.json).
 
 
 ## Linux execution support
@@ -209,6 +208,13 @@ Linux Unix-socket denial is exercised. Direct OpenRouter Nemotron and gateway
 Gemini passed sandboxed read and continuation; Gemini vision also passed.
 [Live evidence](evidence/linux-support/live-openrouter.json). All cleanup was
 confirmed and temporary credentials were removed. The earlier NVIDIA NIM
-failure is retained as history. A Linux Codex host exercise is prepared but not
-yet run; it is not passed by fake-provider MCP tests or transport discovery.
-Existing macOS qualification must not be interpreted as Linux release readiness.
+failure is retained as history. Actual registered Codex host verification also passed all six tools, with
+confirmed cleanup. [Host evidence](evidence/linux-support/codex-host.json).
+Codex ran on macOS against Linux server/workers; native Linux Codex is not
+qualified. Temporary host registration and copied credentials were removed.
+Linux release readiness is scoped to this exact OrbStack identity.
+
+Keep scratch paths short, including the appended instance name and random run
+directory. The prepared long host path caused SRT socket creation to fail with
+`EINVAL`; `/private/tmp/ps-lhs` as the canonical scratch root passed unchanged
+sandbox preflight and tool containment. Path-length setup failure is fail-closed.

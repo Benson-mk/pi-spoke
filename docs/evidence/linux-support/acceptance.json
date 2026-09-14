@@ -1,7 +1,7 @@
 {
   "platform": "linux-arm64-orbstack",
-  "release_ready": false,
-  "note": "Local coverage only. All 66 accepted cases retained; external gates are separate. See compatibility.md for exact identities.",
+  "release_ready": true,
+  "note": "All 66 cases and mandatory release gates pass for the pinned Linux OrbStack identity. Host evidence is macOS Codex calling the Linux server/workers; native Linux Codex is not qualified.",
   "cases": [
     {
       "id": "A01",
@@ -370,9 +370,10 @@
         "examples/codex.toml",
         "src/cli.ts",
         "src/mcp/server.ts",
-        "docs/evidence/linux-support/verify.txt"
+        "docs/evidence/linux-support/verify.txt",
+        "docs/evidence/linux-support/codex-host.json"
       ],
-      "scope": "Structural inspection and public MCP tests; actual Linux Codex host exercise remains unrun."
+      "scope": "Actual Codex host performed independent main-agent work and exercised the optional Linux MCP tools."
     },
     {
       "id": "S01",
@@ -832,10 +833,10 @@
     },
     {
       "id": "manual-codex",
-      "status": "NOT RUN",
-      "reason": "Linux stdio transport exposes all six tools and pi_spoke_linux is registered. Actual Codex calls await tool reload; transport discovery is not host verification.",
+      "status": "PASS",
+      "reason": "Actual registered Codex tools verified Linux sandboxed read, question/reply, native continuation, steering, cancellation and confirmed cleanup.",
       "evidence": [
-        "host-transport.json"
+        "codex-host.json"
       ]
     }
   ]

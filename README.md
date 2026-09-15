@@ -39,6 +39,31 @@ The **operator** configures credentials and capability ceilings. The **main agen
 
 ## Quick start
 
+### Guided installation
+
+From this source checkout, run:
+
+```sh
+bash install.sh
+```
+
+The interactive installer checks prerequisites, offers a private Node 24.15.0
+installation, copies and builds pi-spoke outside worker workspaces, and walks
+through provider credentials, model selection, permissions, and limits. It can
+reuse an existing installation and Pi files. New setups use read/search tools
+with no write grants; credentials are entered with hidden input.
+
+Review the generated files before saving. Existing operator configuration and
+connection snippets receive private backups; existing provider files are reused
+without modification. Sandbox canaries and a six-tool MCP handshake are offered
+before optional Codex registration. No provider inference is run.
+
+The root script also supports downloaded or piped invocation by fetching the
+source from GitHub (`PI_SPOKE_REF` selects a branch, tag, or commit). That mode
+requires these installer files to be published at the selected ref; until then,
+run the checkout command above. See the [installer guide](docs/setup.md) for
+prerequisites, reruns, and verification limits.
+
 ### 1. Build from source
 
 Requires **Node 24.15.0** and the locked dependencies. On the qualified Linux VM, install `bubblewrap`, `socat`, `ripgrep`, and `build-essential` first (the build compiles a native seccomp filter with `/usr/bin/cc`).

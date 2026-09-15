@@ -5,7 +5,7 @@ pi-spoke is a local delegation and communication layer between a main agent and 
 | Read when you need… | Document |
 |---|---|
 | Implemented milestones and remaining gates | [Implementation status](implementation-status.md) · [Acceptance ledger](acceptance-status.json) · [Release audit](release-audit.md) |
-| Local operation and Codex configuration | [Operations](operations.md) · [Host verification](codex-host-verification.md) · [Linux host verification](linux-host-verification.md) |
+| Installation, local operation, and Codex configuration | [Setup wizard](setup.md) · [Operations](operations.md) · [Host verification](codex-host-verification.md) · [Linux host verification](linux-host-verification.md) |
 | Qualified dependencies and limitations | [Compatibility](compatibility.md) |
 | Initial release specification | [pi-spoke 0.1.0 spec](specs/pi-spoke-v0.1.md) · [GitHub issue #1](https://github.com/Benson-mk/pi-spoke/issues/1) |
 | Shared project terminology | [Context glossary](../CONTEXT.md) |

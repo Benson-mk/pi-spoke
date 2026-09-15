@@ -58,7 +58,8 @@ native context can still contain provider-visible text or images.
 For Codex, adapt [codex.toml](../examples/codex.toml) in your host configuration.
 The command/args and timeout fields follow the [official MCP configuration
 documentation](https://developers.openai.com/codex/mcp), fetched 2026-09-14.
-This repository does not install host configuration or a mandatory host skill.
+The optional [setup wizard](setup.md) can register the server with Codex after
+verification and confirmation. Manual setup remains available; a host skill is optional.
 The main agent can choose not to delegate. If it delegates, choose a model
 explicitly, use self-contained tasks, retain request keys across retries, observe
 without adding turns, and answer the exact pending question ID. Observation

@@ -6,8 +6,8 @@ pi_spoke_install() {
   case "${1:-}" in
     -h|--help)
       printf '%s\n' 'Pi Spoke Installer' 'Usage: bash install.sh' \
-        'Installs a private runtime, configures Pi providers and worker permissions,' \
-        'checks the MCP server, and optionally registers it with Codex.' \
+        'Installs with defaults, asks for a workspace, checks the MCP server,' \
+        'and registers it with Codex after confirmation. See README for model setup.' \
         'Requires an interactive terminal. PI_SPOKE_REF selects a source ref (default: main).'
       return ;;
     '') ;;

@@ -184,8 +184,8 @@ finish() {
 # Replace the example below. Set TOTAL_STAGES to match the stages you write.
 # ──────────────────────────────────────────────────────────────────────────
 
-TOTAL_STAGES=9
-set +x # Never trace credential input, even when started with bash -x.
+TOTAL_STAGES=3
+set +x
 umask 077
 PS_SOURCE=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd -P)
 PS_HELPER="$PS_SOURCE/scripts/setup-config.mjs"
@@ -197,33 +197,6 @@ trap 'exit 130' INT
 trap 'exit 143' TERM
 [[ -t 0 ]] || { say "Run bash install.sh from an interactive terminal."; exit 1; }
 
-ask_value() {
-  local key="$1" prompt="$2" fallback="${3:-}" value
-  value=$(_existing "$key" || true)
-  [[ -n "$value" ]] || value="$fallback"
-  ask "$key" "$prompt${value:+ [$value]}:"
-  [[ -n "${!key}" ]] || printf -v "$key" '%s' "$value"
-  write_env "$key" "${!key}"
-}
-
-need_value() {
-  local key="$1" prompt="$2" fallback="${3:-}"
-  while :; do
-    ask_value "$key" "$prompt" "$fallback"
-    [[ -n "${!key}" ]] && break
-    warn "A value is required. Ctrl-C exits without saving the configuration."
-  done
-}
-
-choose() {
-  local key="$1" prompt="$2" fallback="$3" choices="$4"
-  while :; do
-    need_value "$key" "$prompt" "$fallback"
-    case " $choices " in *" ${!key} "*) return ;; esac
-    warn "Choose one of: $choices"
-  done
-}
-
 load_answers() {
   local key value
   while IFS='=' read -r key value; do
@@ -233,19 +206,17 @@ load_answers() {
 }
 
 printf '\n%s%s  Pi Spoke Installer%s\n' "$BOLD" "$BLUE" "$RESET"
-say "Install → configure providers → set worker permissions → connect Codex."
-say "You will review the files before saving. API-key input is hidden."
-say "Configuration is saved at stage 7; an earlier cancellation discards answers."
-pause "Press Enter to begin."
+say "Install with defaults, choose a workspace, then connect Codex."
+say "Model setup is documented in README.md → Model configuration."
 
-stage "Host prerequisites"
+stage "Install"
 case "$(uname -s)/$(uname -m)" in
   Darwin/arm64) PS_PLATFORM=darwin; PS_ARCH=arm64 ;;
   Linux/aarch64|Linux/arm64) PS_PLATFORM=linux; PS_ARCH=arm64 ;;
   *) warn "The current release qualifies macOS and Linux arm64 only. See docs/compatibility.md."; exit 1 ;;
 esac
 say "Worker tools require the exact host/toolchain identities in docs/compatibility.md."
-say "The sandbox check at stage 8 will report whether this host is ready."
+say "Sandbox readiness is checked automatically after configuration."
 PS_MISSING=()
 for PS_COMMAND in curl tar gzip; do
   command -v "$PS_COMMAND" >/dev/null 2>&1 || PS_MISSING+=("$PS_COMMAND")
@@ -293,19 +264,16 @@ if (( ${#PS_MISSING[@]} )); then
   fi
   if (( ${#PS_MISSING[@]} )); then warn "Still missing: ${PS_MISSING[*]}. Install them and rerun."; exit 1; fi
 fi
-pause "Prerequisites found. Press Enter to choose the installation."
-
-stage "Private Node and pi-spoke installation"
 PS_BASE="$HOME/.local/share/pi-spoke"
 PS_NODE_DEFAULT="$PS_BASE/node-v24.15.0/bin/node"
 if [[ ! -x "$PS_NODE_DEFAULT" ]] && command -v node >/dev/null 2>&1; then
   if [[ "$(node --version)" == v24.15.0 ]]; then PS_NODE_DEFAULT=$(command -v node); fi
 fi
-ask_value PS_NODE "Node 24.15.0 binary (missing default can be installed)" "$PS_NODE_DEFAULT"
+PS_NODE="${PI_SPOKE_NODE:-$PS_NODE_DEFAULT}"
 if [[ ! -x "$PS_NODE" ]]; then
   [[ "$PS_NODE" == "$PS_BASE/node-v24.15.0/bin/node" ]] || { warn "Choose an existing Node binary or the offered install path."; exit 1; }
   [[ ! -e "$PS_BASE/node-v24.15.0" && ! -L "$PS_BASE/node-v24.15.0" ]] || { warn "Node install directory exists but is incomplete; select another existing binary."; exit 1; }
-  confirm "Download Node 24.15.0 from nodejs.org into $PS_BASE/node-v24.15.0?" || exit 0
+  say "Downloading Node 24.15.0 into $PS_BASE/node-v24.15.0"
   PS_ARCHIVE="node-v24.15.0-$PS_PLATFORM-$PS_ARCH.tar.gz"
   curl --proto '=https' --tlsv1.2 --fail --location --show-error "https://nodejs.org/dist/v24.15.0/$PS_ARCHIVE" -o "$PS_TEMP/$PS_ARCHIVE"
   curl --proto '=https' --tlsv1.2 --fail --location --show-error "https://nodejs.org/dist/v24.15.0/SHASUMS256.txt" -o "$PS_TEMP/SHASUMS256.txt"
@@ -323,132 +291,81 @@ if [[ ! -x "$PS_NODE" ]]; then
 fi
 [[ "$("$PS_NODE" --version)" == v24.15.0 ]] || { warn "Use the qualified Node version 24.15.0."; exit 1; }
 PS_NODE=$("$PS_NODE" -p 'process.execPath')
-write_env PS_NODE "$PS_NODE"
+write_env PS_NODE "$PS_NODE" >/dev/null
 export PATH="$(dirname -- "$PS_NODE"):$PATH"
 PS_RUNTIME_DEFAULT="$PS_BASE/current"
-if [[ ! -f "$PS_RUNTIME_DEFAULT/dist/cli.js" ]]; then PS_RUNTIME_DEFAULT="$PS_BASE/install-$(date +%Y%m%d-%H%M%S)"; fi
-ask_value PS_RUNTIME "Installation directory (existing build, or a new directory)" "$PS_RUNTIME_DEFAULT"
+PS_RUNTIME="${PI_SPOKE_INSTALL_DIR:-$PS_RUNTIME_DEFAULT}"
+write_env PS_RUNTIME "$PS_RUNTIME" >/dev/null
 [[ "$PS_RUNTIME" == /* ]] || { warn "Use an absolute installation path."; exit 1; }
 if [[ -f "$PS_RUNTIME/dist/cli.js" && -d "$PS_RUNTIME/node_modules" ]]; then
   say "Using the existing installation: $PS_RUNTIME"
 else
-  say "This copies the source and builds with locked dependencies."
-  confirm "Install pi-spoke into $PS_RUNTIME using npm ci --ignore-scripts and npm run build?" || exit 0
+  say "Installing pi-spoke into $PS_RUNTIME with locked dependencies."
   mkdir -p "$(dirname -- "$PS_RUNTIME")"
   "$PS_NODE" "$PS_HELPER" install "$PS_SOURCE" "$PS_RUNTIME"
   PS_NPM="$(dirname -- "$PS_NODE")/npm"
   [[ -x "$PS_NPM" ]] || { warn "npm must be installed beside the selected Node binary."; exit 1; }
   (cd -- "$PS_RUNTIME" && "$PS_NPM" ci --ignore-scripts && "$PS_NPM" run build)
 fi
-pause "Installation selected. Press Enter to configure it."
 
-stage "Configuration and workspace paths"
-say "Keep the installation, configuration, state, and scratch outside worker workspaces."
-ask_value PS_CONFIG_DIR "Configuration directory" "$HOME/.config/pi-spoke"
-[[ "$PS_CONFIG_DIR" == /* ]] || { warn "Use an absolute configuration path."; exit 1; }
+stage "Workspace and defaults"
+PS_CONFIG_DIR="${PI_SPOKE_CONFIG_DIR:-$HOME/.config/pi-spoke}"
+[[ "$PS_CONFIG_DIR" == /* ]] || { warn "Use an absolute PI_SPOKE_CONFIG_DIR."; exit 1; }
 cp "$ENV_FILE" "$PS_TEMP/install.env"
 "$PS_NODE" "$PS_HELPER" defaults "$PS_CONFIG_DIR" "$ENV_FILE"
 cat "$PS_TEMP/install.env" >> "$ENV_FILE"
 load_answers
+PS_INSTANCE="${PI_SPOKE_INSTANCE:-codex}"
+write_env PS_INSTANCE "$PS_INSTANCE" >/dev/null
 if [[ -f "$PS_CONFIG_DIR/config.json" ]]; then
-  say "Existing settings are used as defaults; additional workspaces and allowed models are retained."
-  say "Stop this pi-spoke MCP instance before changing its configuration, then restart it after setup."
+  say "Existing permissions, limits, and model settings will be retained."
 fi
-need_value PS_WORKSPACE "Existing workspace directory workers may read"
-ask_value PS_STATE_DIR "Private state directory" "$HOME/.local/share/pi-spoke/state"
-ask_value PS_SCRATCH_DIR "Private scratch directory (keep this path short)" "$HOME/.ps-tmp"
-ask_value PS_INSTANCE "MCP instance name" codex
-
-stage "Pi credentials"
-say "auth.json stores provider credentials. models.json describes provider endpoints and models."
-say "config.json controls the pi-spoke worker permissions and limits."
-choose PS_AUTH_MODE "Reuse existing Pi files, or create new provider files? (reuse/new)" new "reuse new"
-if [[ "$PS_AUTH_MODE" == reuse ]]; then
-  step "Use the auth.json created by Pi's /login, or your operator-managed credential file."
-  need_value PS_AUTH_PATH "Existing auth.json path" "$HOME/.pi/agent/auth.json"
-  say "For built-in models, models.json is optional. Enter '-' to omit it."
-  ask_value PS_MODELS_PATH "Existing models.json path, or '-'" -
-  [[ "$PS_MODELS_PATH" != - ]] || { PS_MODELS_PATH=""; write_env PS_MODELS_PATH ""; }
-else
-  say "Creates auth.json and models.json inside $PS_CONFIG_DIR. Existing provider files are never replaced."
-  step "Open your provider's account dashboard and obtain an API key. The exact menu varies by provider."
-  ask_value PS_DASHBOARD "Provider dashboard URL to open, or '-'" -
-  if [[ "$PS_DASHBOARD" != - ]]; then
-    case "$PS_DASHBOARD" in https://*) open_url "$PS_DASHBOARD" ;; *) warn "Use an HTTPS dashboard URL."; exit 1 ;; esac
+say "Choose an existing workspace outside the installation and private configuration directories."
+while :; do
+  ask PS_WORKSPACE "Workspace${PS_WORKSPACE:+ [$PS_WORKSPACE]}:"
+  [[ -n "$PS_WORKSPACE" ]] && break
+  warn "A workspace is required. Ctrl-C exits."
+done
+write_env PS_WORKSPACE "$PS_WORKSPACE" >/dev/null
+if [[ -n "$PS_PI_DIR" ]]; then
+  say "Found Pi configuration: $PS_PI_DIR"
+  say "Loading reuses Pi's credential/model files and replaces the pi-spoke model allowlist with Pi's catalog."
+  if confirm "Load your Pi configuration?"; then
+    PS_LOAD_PI=yes
+    write_env PS_LOAD_PI "$PS_LOAD_PI" >/dev/null
   fi
-  step "Copy the provider's API key. For a keyless local server, enter its documented placeholder key."
-  while :; do
-    ask_secret PS_KEY "Paste the API key (hidden):"
-    [[ -n "$PS_KEY" ]] && break
-    warn "An API key or local-server placeholder is required."
-  done
-  write_env PS_KEY "$PS_KEY"
-  unset PS_KEY
 fi
-
-stage "Provider and model"
-step "Copy the exact provider name and model ID from your Pi configuration or provider documentation."
-need_value PS_PROVIDER "Provider ID (for a new custom provider, choose a unique name)"
-need_value PS_MODEL "Model ID"
-ask_value PS_DESCRIPTION "Optional model description (enter '-' to clear)"
-[[ "$PS_DESCRIPTION" != - ]] || { PS_DESCRIPTION=""; write_env PS_DESCRIPTION ""; }
-if [[ "$PS_AUTH_MODE" == new ]]; then
-  need_value PS_BASE_URL "Provider API base URL (include /v1 when required)"
-  choose PS_API "API protocol" openai-completions "openai-completions openai-responses anthropic-messages google-generative-ai"
-  say "Enter the model's documented limits; the offered values are Pi defaults."
-  ask_value PS_CONTEXT "Context window in tokens" 128000
-  ask_value PS_OUTPUT "Maximum output tokens" 16384
-  choose PS_REASONING "Model supports reasoning? (yes/no)" no "yes no"
-  choose PS_VISION "Model supports image input? (yes/no)" no "yes no"
-fi
-
-stage "Worker permissions and limits"
-say "read: read/search only. edit: read/search plus structured edits in one explicit directory."
-say "keep: retain the existing tool and write policy. read/edit replace that policy."
-choose PS_PERMISSION_MODE "Permission policy (read/edit/keep)" read "read edit keep"
-if [[ "$PS_PERMISSION_MODE" == edit ]]; then
-  say "Each worker must still request a narrower file-write scope when it starts."
-  need_value PS_FILE_ROOT "Existing directory where file edits may be granted" "$PS_WORKSPACE"
-fi
-say "Tool networking stays disabled. Existing skill settings are retained; new setups disable skills."
-ask_value PS_WALL_MS "Maximum run duration in milliseconds" 180000
-ask_value PS_TURNS "Maximum turns per run" 12
-ask_value PS_ACTIVE "Maximum simultaneous runs" 3
-
-stage "Review and save"
 "$PS_NODE" "$PS_HELPER" prepare "$ENV_FILE" "$PS_TEMP"
-say "Provider files are validated without resolving credentials or contacting providers."
-confirm "Save the displayed configuration and connection snippet, backing up files marked for replacement?" || exit 0
-"$PS_NODE" "$PS_HELPER" save "$PS_TEMP/plan.json"
-PS_CONFIG_PATH="$PS_CONFIG_DIR/config.json"
-pause "Saved. Press Enter to check the MCP server."
-
-stage "Verify host and MCP server"
-"$PS_NODE" "$PS_RUNTIME/dist/cli.js" doctor --config "$PS_CONFIG_PATH" --instance "$PS_INSTANCE"
-say "The sandbox check runs disposable canaries. The MCP check starts and stops the server and lists its six tools."
-say "These checks make no inference requests. Stop an existing server using this instance before checking MCP."
-PS_CHECKS_OK=yes
-if confirm "Run the sandbox canaries and MCP handshake now?"; then
-  if ! "$PS_NODE" "$PS_RUNTIME/dist/cli.js" doctor --config "$PS_CONFIG_PATH" --instance "$PS_INSTANCE" --sandbox-check; then
-    PS_CHECKS_OK=no
-    SKIPPED+=("Sandbox verification failed; inspect docs/compatibility.md before running workers.")
-  fi
-  if ! "$PS_NODE" "$PS_HELPER" check "$PS_TEMP/plan.json"; then
-    PS_CHECKS_OK=no
-    SKIPPED+=("MCP handshake failed; stop any existing instance, inspect configuration, and retry.")
-  fi
-else
-  PS_CHECKS_OK=no
-  SKIPPED+=("Sandbox and MCP verification were skipped.")
-fi
-pause "Press Enter for the host connection."
-
-stage "Connect to Codex"
 PS_CODEX=$(command -v codex || true)
 if [[ -z "$PS_CODEX" && -x /Applications/ChatGPT.app/Contents/Resources/codex ]]; then PS_CODEX=/Applications/ChatGPT.app/Contents/Resources/codex; fi
-say "Connection snippet: $PS_CONFIG_DIR/codex.toml"
-say "Other MCP hosts can use the same command and arguments shown in that file."
-if [[ -n "$PS_CODEX" && "$PS_CHECKS_OK" == yes ]] && confirm "Register pi_spoke in Codex now (replaces its existing entry if present)?"; then
+PS_CONNECT=no
+if [[ "${PI_SPOKE_CODEX:-1}" != 0 && -n "$PS_CODEX" ]]; then
+  PS_CONNECT=yes
+  say "Codex: register pi_spoke after verification, replacing its entry with a configuration backup."
+else
+  say "Host connection: use the generated codex.toml snippet."
+fi
+say "Verification runs disposable sandbox and MCP checks without contacting providers."
+if [[ "$PS_CONNECT" == yes ]]; then
+  confirm "Save these settings, verify, and connect Codex?" || exit 0
+else
+  confirm "Save these settings and verify?" || exit 0
+fi
+"$PS_NODE" "$PS_HELPER" save "$PS_TEMP/plan.json"
+PS_CONFIG_PATH="$PS_CONFIG_DIR/config.json"
+
+stage "Verify and connect"
+"$PS_NODE" "$PS_RUNTIME/dist/cli.js" doctor --config "$PS_CONFIG_PATH" --instance "$PS_INSTANCE"
+PS_CHECKS_OK=yes
+if ! "$PS_NODE" "$PS_RUNTIME/dist/cli.js" doctor --config "$PS_CONFIG_PATH" --instance "$PS_INSTANCE" --sandbox-check; then
+  PS_CHECKS_OK=no
+  SKIPPED+=("Sandbox verification failed; inspect docs/compatibility.md before running workers.")
+fi
+if ! "$PS_NODE" "$PS_HELPER" check "$PS_TEMP/plan.json"; then
+  PS_CHECKS_OK=no
+  SKIPPED+=("MCP handshake failed; inspect the installation and retry.")
+fi
+if [[ "$PS_CONNECT" == yes && "$PS_CHECKS_OK" == yes ]]; then
   PS_CODEX_CONFIG="${CODEX_HOME:-$HOME/.codex}/config.toml"
   if [[ -f "$PS_CODEX_CONFIG" ]]; then
     PS_CODEX_BACKUP=$(mktemp "$PS_CODEX_CONFIG.backup-XXXXXX")
@@ -456,18 +373,21 @@ if [[ -n "$PS_CODEX" && "$PS_CHECKS_OK" == yes ]] && confirm "Register pi_spoke 
     say "Codex configuration backup: $PS_CODEX_BACKUP"
   fi
   "$PS_CODEX" mcp add pi_spoke -- "$PS_NODE" "$PS_RUNTIME/dist/cli.js" serve --config "$PS_CONFIG_PATH" --instance "$PS_INSTANCE"
-  say "Codex registration saved. Restart Codex to load the MCP connection."
+  say "Codex connected. Restart Codex to load the connection."
 else
-  step "After verification, merge the [mcp_servers.pi_spoke] section from the snippet into your Codex config.toml."
-  step "Replace an existing pi_spoke section; do not append a duplicate. Restart Codex afterward."
-  SKIPPED+=("Codex registration: use the generated codex.toml snippet after verification.")
+  say "Connection snippet: $PS_CONFIG_DIR/codex.toml"
+  if [[ "$PS_CONNECT" == yes ]]; then SKIPPED+=("Codex registration was skipped because verification failed."); fi
 fi
-say "Installed runtime: $PS_RUNTIME"
 say "Operator configuration: $PS_CONFIG_PATH"
-say "To adjust the setup later, rerun this installer and select the same installation/configuration paths."
+if [[ "$PS_LOAD_PI" == yes ]]; then
+  say "Pi configuration loaded. Restart Codex to use its model catalog."
+else
+  say "Model setup and changes: README.md → Model configuration."
+fi
+say "Guide: $PS_RUNTIME/README.md"
 if (( ${#SKIPPED[@]} )); then
   warn "Setup saved with remaining steps:"
   for PS_ITEM in "${SKIPPED[@]}"; do say "$PS_ITEM"; done
 else
-  say "Setup complete. Sandbox and MCP checks passed; provider entitlement has not been tested."
+  say "Installation complete. Model configuration and provider access are checked separately."
 fi

@@ -47,16 +47,17 @@ From this source checkout, run:
 bash install.sh
 ```
 
-The interactive installer checks prerequisites, offers a private Node 24.15.0
-installation, copies and builds pi-spoke outside worker workspaces, and walks
-through provider credentials, model selection, permissions, and limits. It can
-reuse an existing installation and Pi files. New setups use read/search tools
-with no write grants; credentials are entered with hidden input.
+Choose a workspace and confirm the setup. The installer handles prerequisites,
+Node 24.15.0, a private pi-spoke installation, verification, and Codex registration.
+New setups default to read/search tools, no write grants, 3-minute runs, 12 turns,
+and 3 concurrent runs. Existing settings are retained and changed configuration
+files receive backups.
 
-Review the generated files before saving. Existing operator configuration and
-connection snippets receive private backups; existing provider files are reused
-without modification. Sandbox canaries and a six-tool MCP handshake are offered
-before optional Codex registration. No provider inference is run.
+If an existing Pi configuration is found, the installer asks whether to load it.
+Accepting reuses Pi's credential/model files and makes its model catalog available
+to workers. Declining retains existing pi-spoke model settings; new installations
+start with an empty model allowlist. Configure new providers using
+[Model configuration](#model-configuration) below. No provider inference is run.
 
 The root script also supports downloaded or piped invocation by fetching the
 source from GitHub (`PI_SPOKE_REF` selects a branch, tag, or commit). That mode
@@ -93,6 +94,111 @@ node dist/cli.js serve --config /absolute/path/to/pi-spoke.json --instance proje
 ```
 
 For OpenAI Codex, adapt [examples/codex.toml](examples/codex.toml) to your absolute binary and configuration paths.
+
+---
+
+## Model configuration
+
+The installer can reuse an existing Pi setup. For a new provider or later changes,
+edit the files under `~/.config/pi-spoke/`:
+
+| File | Purpose |
+|---|---|
+| `config.json` | pi-spoke permissions, limits, Pi file paths, and allowed models |
+| `auth.json` | Pi provider credentials |
+| `models.json` | Pi custom provider endpoints and model definitions |
+
+### Reuse an existing Pi setup
+
+The installer detects `~/.pi/agent/`, or the directory set by
+`PI_CODING_AGENT_DIR`, when it contains `auth.json` or `models.json`. Accept
+**Load your Pi configuration?** to reference those files in place. This replaces
+pi-spoke's model paths and removes its model allowlist so Pi's catalog is
+available. Existing workspace permissions and limits are retained. Pi's UI
+settings and extensions are not imported.
+
+For OAuth, sign in through Pi's `/login`. You can also point pi-spoke at Pi files
+manually by editing the `pi` section of `config.json` with absolute paths
+(replace the example username):
+
+```json
+"pi": {
+  "auth_path": "/Users/you/.pi/agent/auth.json",
+  "models_path": "/Users/you/.pi/agent/models.json"
+}
+```
+
+Omit `models_path` when using only Pi's built-in models. Add the exact
+provider/model pairs to `allowed_models` below, or remove that field to expose
+Pi's complete catalog.
+
+### Configure a custom provider
+
+If you do not have Pi files to reuse, create these files in
+`~/.config/pi-spoke/`. Replace the placeholders with your provider's documented
+API endpoint, key, and model ID. Use the same provider name throughout.
+
+**`auth.json`:**
+
+```json
+{
+  "my-provider": { "type": "api_key", "key": "YOUR_API_KEY" }
+}
+```
+
+**`models.json`:**
+
+```json
+{
+  "providers": {
+    "my-provider": {
+      "baseUrl": "https://api.example.com/v1",
+      "api": "openai-completions",
+      "authHeader": true,
+      "models": [{ "id": "your-model-id" }]
+    }
+  }
+}
+```
+
+This example uses an OpenAI-compatible Chat Completions API. Set `api` to the
+protocol your endpoint supports: `openai-completions`, `openai-responses`,
+`anthropic-messages`, or `google-generative-ai`. Set model fields such as
+`contextWindow`, `maxTokens`, `reasoning`, and `input` according to the provider's
+documentation. Advanced compatibility options are described in
+[Pi's model configuration documentation](https://github.com/earendil-works/pi-mono/blob/main/packages/coding-agent/docs/models.md).
+
+Keep these private files readable only by your account:
+
+```sh
+chmod 600 ~/.config/pi-spoke/auth.json ~/.config/pi-spoke/models.json
+```
+
+New installations already point `config.json` at these paths. If you use another
+folder or previously loaded Pi's files, update `pi.auth_path` and `pi.models_path`
+with the appropriate absolute paths.
+
+### Allow models and restart
+
+To restrict workers to specific models, edit `allowed_models` in `config.json`,
+retaining any other entries you want:
+
+```json
+"allowed_models": [
+  {
+    "provider": "my-provider",
+    "id": "your-model-id",
+    "description": "For focused repository inspection."
+  }
+]
+```
+
+An empty array blocks all worker models. Omitting the field makes Pi's catalog
+available. Provider and ID must exactly match Pi's built-in catalog or your
+`models.json`; the description is optional operator guidance. Restart the MCP
+connection after editing. `spoke_catalog` with `kind: "models"` shows the allowed
+catalog; discovery does not verify live provider access. See
+[operations](docs/operations.md) for explicit live checks.
 
 ---
 

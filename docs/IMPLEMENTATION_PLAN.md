@@ -259,6 +259,8 @@ type ObserveInput =
   | { run_id: string; view?: "summary" | "events";
       after_seq?: number; wait_ms?: number; limit?: number }
   | { run_id: string; view: "output";
+      offset_bytes?: number; max_bytes?: number }
+  | { run_id: string; view: "question"; question_id: string;
       offset_bytes?: number; max_bytes?: number };
 ```
 
@@ -268,7 +270,9 @@ Events have durable monotonically increasing sequence numbers. Reads are non-des
 
 `events` includes normalized tool start/end and lifecycle evidence, with truncation disclosed. Default event limit is 50, maximum 100. Response text/output previews are bounded to 16 KiB. Overflow is explicitly marked, and output can be retrieved with the `output` view using safe UTF-8 byte offsets and `next_offset_bytes`.
 
-Terminal observation separates provider finish reason, failure stage/category and bounded redacted diagnostic, worker exit code/signal when known, final-text emptiness, invocation outcomes and cleanup status. `length` is surfaced as provider metadata without inferring it from token counts; safe-checkpoint validation still decides completion. Successful tool invocation is not task correctness, and prior workspace edits are never rolled back or replayed automatically. Unknown provider metadata remains null.
+The summary includes the applied run deadline, remaining wall allowance, used/remaining model turns when observed, activity category and its latest transition time, and independent tool invocation outcomes. A worker can make several tool calls in one model turn; tool counts do not imply verified file changes. Questions expose a bounded preview and a correlated `question` view for complete UTF-8 pagination. A zero-length page at a multibyte boundary includes `minimum_next_bytes`. Activity can be generation, helper, waiting for reply, or unknown; it never describes private reasoning. An approaching wall limit is recorded once when remaining time reaches the minimum of 60 seconds and 10% of the applied wall-time limit; one remaining turn is recorded once. Polls do not refresh these thresholds or affect allowance.
+
+Terminal observation separates provider finish reason, failure stage/category and bounded redacted diagnostic, worker exit code/signal when known, final-text emptiness, invocation outcomes and cleanup status. `length` is surfaced as provider metadata without inferring it from token counts; safe-checkpoint validation still decides completion. Successful tool invocation is not task correctness, and prior workspace edits are never rolled back or replayed automatically. Unknown provider and legacy-run metadata remain null rather than being guessed from later session policy.
 
 Observation never appends a user turn, loads a skill into the worker, runs an LLM summarizer, resumes a session, or acknowledges a worker question.
 

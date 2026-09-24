@@ -15,6 +15,14 @@ function preview(text: string, max = 4096) {
   while (end < bytes.length && (bytes[end]! & 0xc0) === 0x80) end--;
   return { text: bytes.subarray(0,end).toString(), truncated: end < bytes.length };
 }
+function boundedTextPage<T extends { text: string; next_offset_bytes: number; truncated: boolean }, M extends object>(page: T, offset: number, metadata: M): T & M {
+  let result = { ...page };
+  while (Buffer.byteLength(JSON.stringify({ ...metadata, ...result })) > 16000 && result.text.length) {
+    const next = preview(result.text, Math.floor(Buffer.byteLength(result.text) / 2)).text;
+    result = { ...result, text: next, next_offset_bytes: offset + Buffer.byteLength(next), truncated: true };
+  }
+  return { ...metadata, ...result };
+}
 function terminalSummary(run: Run) {
   const terminal = run.terminal ?? { failure_stage: null, error_category: null, diagnostic: null, diagnostic_truncated: false,
     worker_exit_code: null, worker_exit_signal: null, provider_stop_reason: null, final_text_empty: null };
@@ -118,7 +126,10 @@ export class Api {
   async observe(raw: unknown) {
     const parsed = observeSchema.safeParse(raw); if (!parsed.success) invalidInput(parsed.error.issues,
       raw && typeof raw === 'object' && 'view' in raw && raw.view === 'question' ? 8192 : 16384); const input = parsed.data;
-    if (input.view === 'output') return { protocol_version: 1, instance_id: this.app.instanceId, run_id: input.run_id, ...await this.app.service.output(input.run_id, input.offset_bytes, input.max_bytes) };
+    if (input.view === 'output') return boundedTextPage(await this.app.service.output(input.run_id, input.offset_bytes, input.max_bytes), input.offset_bytes,
+      { protocol_version: 1, instance_id: this.app.instanceId, run_id: input.run_id });
+    if (input.view === 'question') return boundedTextPage(this.app.service.questionText(input.run_id, input.question_id, input.offset_bytes, input.max_bytes), input.offset_bytes,
+      { protocol_version: 1, instance_id: this.app.instanceId, run_id: input.run_id });
     const observed = await this.app.service.observe(input.run_id, input.after_seq, input.wait_ms, input.limit);
     const output = await this.app.service.output(input.run_id, 0, 3072);
     const events: object[] = []; let bytes = 0, truncated = false;
@@ -127,10 +138,12 @@ export class Api {
       const item = { seq: event.seq, type: event.type, created_at: event.created, payload: payload.truncated ? { preview: payload.text, truncated: true } : JSON.parse(payload.text) };
       const size = Buffer.byteLength(JSON.stringify(item)); if (bytes + size > 4096) { truncated = true; break; } events.push(item); bytes += size;
     }
-    const questions = observed.questions.map(question => ({ question_id: question.id, ...preview(redact(question.message), 768) }));
+    const questions = observed.questions.map(question => ({ question_id: question.id, ...preview(redact(question.message), 384),
+      retrieval: { view: 'question', run_id: input.run_id, question_id: question.id, offset_bytes: 0 } }));
     const effective = preview(JSON.stringify(resourceSummary(observed.run.effective)), 3072);
     const result = { protocol_version: 1, instance_id: this.app.instanceId, ...runSummary(observed.run), timed_out: observed.timed_out, durability_error: observed.durability_error,
-      usage: observed.run.metrics ?? null, terminal: terminalSummary(observed.run),
+      usage: observed.run.metrics ?? null, budget: observed.budget, activity: observed.activity,
+      terminal: terminalSummary(observed.run),
       tool_count: this.app.store.invocations(input.run_id).length, tool_outcomes: observed.tool_outcomes,
       effective_config: effective.truncated ? { preview: effective.text, truncated: true } : JSON.parse(effective.text),
       questions: questions.slice(0,4), questions_truncated: questions.length > 4, events,
@@ -151,7 +164,7 @@ export class Api {
         'preview' in result.effective_config && typeof result.effective_config.preview === 'string' && result.effective_config.preview.length) {
         result.effective_config = { preview: preview(result.effective_config.preview,
           Math.floor(Buffer.byteLength(result.effective_config.preview) / 2)).text, truncated: true };
-      } else if (result.effective_config) {
+      } else if (result.effective_config && typeof result.effective_config === 'object' && !('preview' in result.effective_config)) {
         result.effective_config = { preview: preview(JSON.stringify(result.effective_config), 1024).text, truncated: true };
       } else fail('LIMIT_EXCEEDED', 'Observation exceeds response envelope');
     }

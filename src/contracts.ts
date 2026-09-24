@@ -27,6 +27,8 @@ export const observeSchema = z.union([
     wait_ms: z.number().int().min(0).max(25000).default(0), limit: z.number().int().min(1).max(100).default(50) }),
   z.strictObject({ run_id: id, view: z.literal('output'), offset_bytes: z.number().int().nonnegative().default(0),
     max_bytes: z.number().int().min(1).max(16384).default(16384) }),
+  z.strictObject({ run_id: id, view: z.literal('question'), question_id: id, offset_bytes: z.number().int().nonnegative().default(0),
+    max_bytes: z.number().int().min(1).max(8192).default(8192) }),
 ]);
 export const catalogSchema = z.strictObject({ kind: z.enum(['models', 'skills', 'tools']), cwd: z.string().optional(), query: z.string().max(1024).optional(),
   cursor: id.optional(), limit: z.number().int().min(1).max(100).default(25) });

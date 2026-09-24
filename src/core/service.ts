@@ -34,7 +34,9 @@ export class Service {
   }
   private transition(run: Run, state: RunState, changes: Partial<Run> = {}) {
     assertTransition(run.state, state);
-    const next = { ...run, ...changes, state, updated: Date.now() };
+    const now = Date.now();
+    const next = { ...run, ...changes, state, updated: now,
+      ...(terminalStates.includes(state) ? { settledAt: now } : {}) };
     this.store.putRun(next); this.store.event(run.id, state, { state, reason: next.reason, cleanup_status: next.cleanup });
     return next;
   }
@@ -43,6 +45,18 @@ export class Service {
     this.run(runId);
     const seq = this.store.transaction(() => this.store.event(runId, type, payload, source));
     this.notify(runId); return seq;
+  }
+  budget(runId: string, now = Date.now()) {
+    const run = this.run(runId), limits = run.appliedLimits, deadline = run.deadlineAt ?? null;
+    return { deadline_at: deadline, remaining_wall_ms: deadline === null || terminalStates.includes(run.state) && run.settledAt === undefined
+      ? null : Math.max(0, deadline - (terminalStates.includes(run.state) ? run.settledAt! : now)),
+      turns_used: run.turnsUsed ?? null, turns_remaining: run.turnsUsed === undefined || !limits ? null : Math.max(0, limits.max_turns - run.turnsUsed), max_turns: limits?.max_turns ?? null };
+  }
+  activity(runId: string, category: NonNullable<Run['activity']>['category'], turnsUsed?: number) {
+    const run = this.run(runId); if (terminalStates.includes(run.state)) return;
+    this.store.transaction(() => this.store.putRun({ ...run, activity: { category, since: Date.now() },
+      ...(turnsUsed === undefined ? {} : { turnsUsed: Math.min(run.appliedLimits?.max_turns ?? Number.MAX_SAFE_INTEGER, turnsUsed) }) }));
+    this.notify(runId);
   }
   private terminal(run: Run): NonNullable<Run['terminal']> {
     return run.terminal ?? { failure_stage: null, error_category: null, diagnostic: null, diagnostic_truncated: false,
@@ -67,6 +81,13 @@ export class Service {
     const run = this.run(runId);
     this.store.transaction(() => this.store.putRun({ ...run, terminal: { ...this.terminal(run), worker_exit_code: code, worker_exit_signal: signal?.slice(0, 32) ?? null } }));
   }
+  limitApproaching(runId: string) {
+    const budget = this.budget(runId), limits = this.run(runId).appliedLimits;
+    if (limits && budget.remaining_wall_ms !== null && budget.remaining_wall_ms > 0 && budget.remaining_wall_ms <= Math.min(60000, limits.wall_time_ms * 0.1))
+      this.recordEvent(runId, 'limit_approaching', { kind: 'wall_time', budget }, 'limit:wall_time');
+    if (budget.turns_remaining !== null && budget.turns_remaining <= 1)
+      this.recordEvent(runId, 'limit_approaching', { kind: 'turns', budget }, 'limit:turns');
+  }
   async spawn(raw: unknown): Promise<Receipt> {
     if (this.shuttingDown) fail('RUN_NOT_ACTIVE', 'Supervisor is shutting down');
     if (this.durabilityError) fail('STATE_WRITE_FAILED');
@@ -89,7 +110,9 @@ export class Service {
     const now = Date.now();
     if (session.policy.resources) session = { ...session, policy: { ...session.policy, resources: { ...session.policy.resources,
       images: this.store.copyInputs(runId, session.policy.resources.images) } } };
-    const run: Run = { id: runId, sessionId: session.id, input, state: 'starting', created: now, updated: now, effective: null, reason: null, cleanup: 'pending', outputPath: null };
+    const run: Run = { id: runId, sessionId: session.id, input, state: 'starting', created: now, updated: now, effective: null, reason: null, cleanup: 'pending', outputPath: null,
+      appliedLimits: { wall_time_ms: session.policy.limits.wall_time_ms, max_turns: session.policy.limits.max_turns }, deadlineAt: now + session.policy.limits.wall_time_ms,
+      turnsUsed: 0, activity: { category: 'unknown', since: now } };
     this.store.putRun(run);
     this.store.putSession({ ...session, lastRunId: runId, updated: now });
     const receipt: Receipt = { protocol_version: 1, instance_id: this.instanceId, session_id: session.id, run_id: runId, state: 'starting', receipt: 'accepted', effective_config: null };
@@ -190,7 +213,7 @@ export class Service {
         const question = this.store.question(input.question_id);
         if (!question || question.runId !== run.id || question.state !== 'open' || run.state !== 'waiting_input') fail('QUESTION_CLOSED');
         this.store.putQuestion({ ...question, state: 'answered', answer: input.message });
-        this.store.event(run.id, 'question_answered', { question_id: question.id });
+        this.store.event(run.id, 'question_answered', { question_id: question.id, budget: this.budget(run.id) });
         if (!this.store.questions(run.id).some(q => q.state === 'open')) this.transition(run, 'running');
       }
       const receipt: Receipt = { protocol_version: 1, instance_id: this.instanceId, session_id: run.sessionId, run_id: run.id, state: run.state, receipt: 'accepted', effective_config: null };
@@ -205,13 +228,15 @@ export class Service {
         await this.runtime.send(input.run_id, input);
         this.store.transaction(() => {
           this.store.putCommand({ ...command, delivery: 'delivered' });
-          this.store.event(input.run_id, input.kind + '_delivered', { request_key: input.request_key });
+          this.store.event(input.run_id, input.kind + '_delivered', { request_key: input.request_key,
+            ...(input.kind === 'reply' ? { question_id: input.question_id, budget: this.budget(input.run_id) } : {}) });
           const run = this.run(input.run_id);
           if (input.kind === 'reply' && run.state === 'waiting_input' && !this.store.questions(run.id).some(q => q.state === 'open')) this.transition(run, 'running');
         });
       } catch {
         this.store.transaction(() => { this.store.putCommand({ ...command, delivery: 'uncertain' }); this.store.event(input.run_id, input.kind + '_uncertain', { request_key: input.request_key }); });
       }
+      if (input.kind === 'reply' && this.run(input.run_id).state === 'running') this.activity(input.run_id, 'unknown');
       this.notify(input.run_id);
     }
     return receipt;
@@ -221,10 +246,14 @@ export class Service {
       const previous = this.store.questions(runId).find(q => q.toolCallId === toolCallId); if (previous) return previous;
       const run = this.run(runId); if (!['running', 'waiting_input'].includes(run.state)) fail('RUN_NOT_ACTIVE');
       const question: Question = { id: 'q_' + randomUUID(), runId, toolCallId, message, state: 'open', answer: null };
-      this.store.putQuestion(question); this.store.event(runId, 'question_opened', question, 'question:' + toolCallId);
+      const sanitized = redact(question.message), bytes = Buffer.from(sanitized); let end = Math.min(1024, bytes.length);
+      while (end < bytes.length && (bytes[end]! & 0xc0) === 0x80) end--;
+      this.store.putQuestion(question); this.store.event(runId, 'question_opened', { question_id: question.id,
+        message: bytes.subarray(0, end).toString('utf8'), message_truncated: end < bytes.length,
+        budget: this.budget(runId) }, 'question:' + toolCallId);
       if (run.state === 'running') this.transition(run, 'waiting_input'); return question;
     });
-    this.notify(runId); return question;
+    this.activity(runId, 'waiting_for_reply'); this.notify(runId); return question;
   }
   async cancel(runId: string, reason = 'CANCELLED'): Promise<Run> {
     const previous = this.stopping.get(runId); if (previous) return previous;
@@ -270,7 +299,8 @@ export class Service {
       else if (evidence.tool_error === false && evidence.exit_code === 0) outcomes.successful++;
       else outcomes.unknown++;
     }
-    return { protocol_version: 1, run, tool_outcomes: outcomes,
+    return { protocol_version: 1, run, budget: this.budget(runId), activity: run.activity ?? { category: 'unknown' as const, since: run.created },
+      tool_outcomes: outcomes,
       questions: this.store.questions(runId).filter(q => q.state === 'open'), events: this.store.events(runId, after, limit), timed_out: timedOut,
       durability_error: this.durabilityError ? 'STATE_WRITE_FAILED' : null };
   }
@@ -281,6 +311,18 @@ export class Service {
     let end = Math.min(offset + max, bytes.length); while (end < bytes.length && (bytes[end]! & 0xc0) === 0x80) end--;
     let minimum = offset + 1; while (minimum < bytes.length && (bytes[minimum]! & 0xc0) === 0x80) minimum++;
     return { text: bytes.subarray(offset, end).toString('utf8'), next_offset_bytes: end, truncated: end < bytes.length,
+      ...(end === offset && offset < bytes.length ? { minimum_next_bytes: minimum - offset } : {}) };
+  }
+  questionText(runId: string, questionId: string, offset = 0, max = 8192) {
+    this.run(runId);
+    const question = this.store.question(questionId);
+    if (!question || question.runId !== runId) fail('INVALID_ARGUMENT', 'Unknown correlated question');
+    if (!Number.isSafeInteger(offset) || offset < 0 || !Number.isSafeInteger(max) || max < 1 || max > 8192) fail('INVALID_ARGUMENT');
+    const bytes = Buffer.from(redact(question.message));
+    if (offset > bytes.length || (offset < bytes.length && (bytes[offset]! & 0xc0) === 0x80)) fail('INVALID_ARGUMENT', 'Offset must be a UTF-8 boundary');
+    let end = Math.min(offset + max, bytes.length); while (end < bytes.length && (bytes[end]! & 0xc0) === 0x80) end--;
+    let minimum = offset + 1; while (minimum < bytes.length && (bytes[minimum]! & 0xc0) === 0x80) minimum++;
+    return { question_id: questionId, text: bytes.subarray(offset, end).toString('utf8'), next_offset_bytes: end, truncated: end < bytes.length,
       ...(end === offset && offset < bytes.length ? { minimum_next_bytes: minimum - offset } : {}) };
   }
   async drain(): Promise<void> {

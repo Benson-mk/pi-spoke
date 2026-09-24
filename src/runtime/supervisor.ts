@@ -22,7 +22,7 @@ type Ready = Awaited<ReturnType<Runtime['setup']>>;
 type Done = Awaited<ReturnType<Runtime['begin']>>;
 type Active = { session: Session; run: Run; scratch: string | null; child?: ChildProcess; ready: ReturnType<typeof deferred<Ready>>;
   done: ReturnType<typeof deferred<Done>>; closing: boolean; hadShell: boolean; uncertainTool?: boolean; result?: Done; heartbeat?: NodeJS.Timeout; wall?: NodeJS.Timeout;
-  terminalValidation?: Promise<void>; questionCalls: Map<string, string>; steerAcks: Map<string, ReturnType<typeof deferred<void>>> };
+  terminalValidation?: Promise<void>; questionCalls: Map<string, string>; steerAcks: Map<string, ReturnType<typeof deferred<void>>>; warning?: NodeJS.Timeout };
 const here = dirname(fileURLToPath(import.meta.url));
 const contact = z.strictObject({ kind: z.enum(['note','question','improvement']), message: z.string().min(1).max(65536),
   evidence: z.array(z.strictObject({ path: z.string().optional(), line: z.number().int().positive().optional(), detail: z.string() })).optional() });
@@ -45,6 +45,8 @@ export class Supervisor implements Runtime {
     const entry: Active = { session, run, scratch: null, ready: deferred(), done: deferred(), closing: false, hadShell: false, questionCalls: new Map(), steerAcks: new Map() };
     this.active.set(run.id, entry);
     entry.wall = setTimeout(() => { void this.service?.cancel(run.id, 'WALL_TIME_LIMIT'); }, Math.max(1, session.policy.limits.wall_time_ms - (Date.now() - run.created)));
+    entry.warning = setTimeout(() => { this.service?.limitApproaching(run.id); },
+      Math.max(1, session.policy.limits.wall_time_ms - Math.min(60000, session.policy.limits.wall_time_ms * 0.1) - (Date.now() - run.created)));
     const resources = session.policy.resources ? { context: session.policy.resources.context.map(({ path, hash }) => ({ path, hash })),
       images: session.policy.resources.images.map(({ source, hash, mimeType }) => ({ source, hash, mimeType })), skills: session.policy.resources.skills } : null;
     let manifest: Record<string, unknown> = { execution_mode: 'no-execution-tools', sandbox_scope: null, backend: null, preflight_id: null, shell_scratch_root: null,
@@ -88,7 +90,7 @@ export class Supervisor implements Runtime {
     }); });
     child.once('error', error => { entry.ready.reject(error); entry.done.reject(error); });
     child.once('close', (code, signal) => { void (async () => {
-      clearTimeout(startup); clearInterval(entry.heartbeat); clearTimeout(entry.wall);
+      clearTimeout(startup); clearInterval(entry.heartbeat); clearTimeout(entry.wall); clearTimeout(entry.warning);
       const toolCleanup = await this.sandbox.cancel(run.id);
       await entry.terminalValidation?.catch(error => { entry.done.reject(error); });
       this.service?.workerExit(run.id, code, signal);
@@ -125,6 +127,10 @@ export class Supervisor implements Runtime {
       const error = new SpokeError(code, redact(message.message)); entry.ready.reject(error); entry.done.reject(error);
     } else if (message.kind === 'event') {
       if (message.event === 'limit_reached') { void this.service?.cancel(entry.run.id, 'MAX_TURNS'); return; }
+      if (message.event === 'turn_started') {
+        const payload = z.object({ turns_used: z.number().int().positive() }).parse(message.payload);
+        this.service?.activity(entry.run.id, 'generation', payload.turns_used); this.service?.limitApproaching(entry.run.id);
+      }
       if (message.event === 'provider_stopped') {
         const payload = z.object({ reason: z.enum(['stop','length','toolUse','error','aborted','deferred','pending']) }).parse(message.payload);
         this.service?.providerStop(entry.run.id, payload.reason);
@@ -133,6 +139,8 @@ export class Supervisor implements Runtime {
         const payload = z.object({ empty: z.boolean() }).parse(message.payload);
         this.service?.finalText(entry.run.id, payload.empty);
       }
+      if (message.event === 'turn_ended' && this.store.getRun(entry.run.id)?.state === 'running')
+        this.service?.activity(entry.run.id, 'unknown');
       if (message.event === 'steer_delivered') {
         const value = z.object({ request_key: z.string() }).parse(message.payload); entry.steerAcks.get(value.request_key)?.resolve(); entry.steerAcks.delete(value.request_key);
       } else if (['compaction_start','compaction_end','agent_settled'].includes(message.event)) this.service!.recordEvent(entry.run.id, message.event, {});
@@ -150,6 +158,7 @@ export class Supervisor implements Runtime {
         }
         return;
       }
+      this.service?.activity(entry.run.id, 'helper');
       const previous = this.store.invocations(entry.run.id).find(item => item.toolCallId === message.callId);
       if (previous) fail('STATE_CORRUPT', 'Tool invocation cannot be automatically replayed');
       const requestPath = message.args && typeof message.args === 'object' && 'path' in message.args ? message.args.path : undefined;
@@ -235,7 +244,7 @@ export class Supervisor implements Runtime {
   }
   async cancel(runId: string): Promise<'confirmed' | 'unconfirmed'> {
     const entry = this.active.get(runId); if (!entry) return this.cleanup.get(runId) ?? 'confirmed'; entry.closing = true;
-    clearTimeout(entry.wall); clearInterval(entry.heartbeat);
+    clearTimeout(entry.wall); clearTimeout(entry.warning); clearInterval(entry.heartbeat);
     const tools = await this.sandbox.cancel(runId);
     let workerExited = !entry.child || entry.child.exitCode !== null || entry.child.signalCode !== null;
     if (entry.child && entry.child.exitCode === null && entry.child.signalCode === null) {

@@ -44,7 +44,8 @@ export async function readText(authority: FileAuthority, requested: string): Pro
   const file = await open(path, constants.O_RDONLY | constants.O_NOFOLLOW);
   try {
     const stat = await file.stat();
-    if (!stat.isFile() || stat.size > 1024 * 1024) throw new Error('LIMIT_EXCEEDED');
+    if (!stat.isFile()) throw new Error(stat.isDirectory() ? 'DIRECTORY_INPUT' : 'UNSAFE_PATH');
+    if (stat.size > 1024 * 1024) throw new Error('FILE_TOO_LARGE');
     const bytes = await file.readFile();
     if (bytes.includes(0)) throw new Error('UNSUPPORTED_INPUT: binary file');
     try { return new TextDecoder('utf-8', { fatal: true }).decode(bytes); } catch { throw new Error('UNSUPPORTED_INPUT: file is not UTF-8 text'); }

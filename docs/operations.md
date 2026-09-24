@@ -72,7 +72,13 @@ label under different state roots and still own different handles. Catalog,
 receipts, sessions, and observations show the identity. An unknown handle is
 looked up only in the current connection; check the recorded owning connection
 before assuming work disappeared. Reopening that instance preserves saved
-sessions.
+sessions. Session-list checkpoint eligibility is provisional: continuation
+rechecks the latest run, cleanup, pinned injected context, and current authority.
+If injected project instructions or context files change, review them and start
+a fresh scoped task. Mutable edit targets can be read at their current contents
+within the existing grant. A completed run cannot be steered; observe its result
+before choosing an explicit next run. A worker waiting for a question needs a
+correlated reply.
 
 Manual host gate (PASS, recorded 2026-09-14): discover all six tools in Codex, choose model and
 permissions explicitly, spawn while doing independent host work, observe,

@@ -23,7 +23,7 @@ export class Service {
   private durabilityError: unknown;
   private shuttingDown = false;
   constructor(readonly store: Store, private readonly runtime: Runtime,
-    private readonly prepare: (input: SpawnInput) => Promise<ResolvedPolicy>, private readonly maxActive = 3, readonly instanceId = store.instanceId) {}
+    private readonly prepare: (input: SpawnInput, continuation?: boolean) => Promise<ResolvedPolicy>, private readonly maxActive = 3, readonly instanceId = store.instanceId) {}
   private run(id: string): Run { const run = this.store.getRun(id); if (!run) fail('INVALID_ARGUMENT', `Unknown run in current MCP instance ${this.instanceId}; a handle may belong to another connection. Check the saved owning connection and instance_id.`); return run; }
   private session(id: string): Session { const session = this.store.getSession(id); if (!session) fail('INVALID_ARGUMENT', `Unknown session in current MCP instance ${this.instanceId}; a handle may belong to another connection. Check the saved owning connection and instance_id.`); return session; }
   private prior(key: string, operation: string, input: unknown): Receipt | undefined {
@@ -123,29 +123,29 @@ export class Service {
     const previous = this.prior(input.request_key, input.kind, input); if (previous) return previous;
     if (input.kind === 'continue') {
       const session = this.session(input.session_id), last = this.run(session.lastRunId);
-      if (!terminalStates.includes(last.state)) fail('SESSION_BUSY');
-      if (session.lastRunId !== input.expected_last_run_id) fail('SESSION_STALE');
-      if (!session.checkpoint?.safe || !['confirmed','operator_attested'].includes(last.cleanup)) fail('SESSION_NOT_RESUMABLE');
+      if (!terminalStates.includes(last.state)) fail('SESSION_BUSY', `Instance ${this.instanceId} session ${session.id} run ${last.id} is ${last.state}; observe it before requesting another run.`);
+      if (session.lastRunId !== input.expected_last_run_id) fail('SESSION_STALE', `Instance ${this.instanceId} session ${session.id} latest run is ${last.id} (${last.state}), not expected_last_run_id; observe the latest run before deciding whether to continue.`);
+      if (!session.checkpoint?.safe || !['confirmed','operator_attested'].includes(last.cleanup)) fail('SESSION_NOT_RESUMABLE', `Instance ${this.instanceId} session ${session.id} run ${last.id} is ${last.state}; safe checkpoint ${session.checkpoint?.safe ? 'available' : 'unavailable'}, cleanup ${last.cleanup}. Inspect partial effects and prepare a fresh scoped task if continuation is unsafe.`);
       const nextInput = { ...session.input, suggested_skills: input.suggested_skills ?? session.input.suggested_skills,
         attachments: input.attachments, limits: input.limits };
       let policy: ResolvedPolicy;
-      try { policy = await this.prepare(nextInput); } catch (error) {
+      try { policy = await this.prepare(nextInput, true); } catch (error) {
         if (error instanceof SpokeError) {
-          if (error.code === 'SKILL_NOT_FOUND' && input.suggested_skills === undefined && session.policy.resources?.skills.length) fail('RESOURCE_CHANGED');
+          if (error.code === 'SKILL_NOT_FOUND' && input.suggested_skills === undefined && session.policy.resources?.skills.length) fail('RESOURCE_CHANGED', 'Pinned skill resource changed or disappeared. Review the resource and prepare a fresh scoped task. Injected resources remain immutable across this continuation.');
           if (['UNSUPPORTED_INPUT','RESOURCE_CHANGED','SKILL_NOT_FOUND','SKILL_NAME_COLLISION','MODEL_UNAVAILABLE','UNSUPPORTED_THINKING'].includes(error.code)) throw error;
         }
-        fail('POLICY_CHANGED');
+        fail('POLICY_CHANGED', `Continuation authority revalidation failed (${error instanceof SpokeError ? error.code : 'policy resolution'}). Check current operator ceilings, model and original grants; prepare a fresh scoped task within current authority.`);
       }
-      if (policy.policy_hash !== session.policy.policy_hash) fail('POLICY_CHANGED');
+      if (policy.policy_hash !== session.policy.policy_hash) fail('POLICY_CHANGED', 'Session policy no longer matches current authority or canonical roots. Review original grants and operator policy; prepare a fresh scoped task within current authority.');
       if (session.policy.resources && policy.resources) {
-        if (digest(policy.resources.context) !== digest(session.policy.resources.context)) fail('RESOURCE_CHANGED');
-        if (input.suggested_skills === undefined && digest(policy.resources.skills) !== digest(session.policy.resources.skills)) fail('RESOURCE_CHANGED');
+        if (digest(policy.resources.context) !== digest(session.policy.resources.context)) fail('RESOURCE_CHANGED', 'Pinned injected context changed. Review project instructions or context files and prepare a fresh scoped task; for mutable edit targets, read their current contents normally within the existing grant.');
+        if (input.suggested_skills === undefined && digest(policy.resources.skills) !== digest(session.policy.resources.skills)) fail('RESOURCE_CHANGED', 'Pinned suggested skills changed. Review them and prepare a fresh scoped task; injected resources remain immutable across this continuation.');
       }
       const receipt = this.store.transaction(() => {
         if (this.shuttingDown) fail('RUN_NOT_ACTIVE', 'Supervisor is shutting down');
         const previous = this.prior(input.request_key, input.kind, input); if (previous) return previous;
         const current = this.session(session.id);
-        if (current.lastRunId !== input.expected_last_run_id) fail('SESSION_STALE');
+        if (current.lastRunId !== input.expected_last_run_id) fail('SESSION_STALE', `Instance ${this.instanceId} session ${current.id} latest run is ${current.lastRunId}; observe it before deciding whether to continue.`);
         if (!terminalStates.includes(this.run(current.lastRunId).state)) fail('SESSION_BUSY');
         if (this.store.activeCount() >= this.maxActive) fail('CAPACITY_EXCEEDED');
         return this.reserve({ ...current, input: nextInput, policy }, 'run_' + randomUUID(), input, 'continue');
@@ -155,8 +155,8 @@ export class Service {
     const receipt = this.store.transaction(() => {
       const previous = this.prior(input.request_key, input.kind, input); if (previous) return previous;
       const run = this.run(input.run_id);
-      if (input.kind === 'steer' && run.state === 'waiting_input') fail('QUESTION_REPLY_REQUIRED');
-      if (input.kind === 'steer' && run.state !== 'running') fail('RUN_NOT_ACTIVE');
+      if (input.kind === 'steer' && run.state === 'waiting_input') fail('QUESTION_REPLY_REQUIRED', `Instance ${this.instanceId} run ${run.id} in session ${run.sessionId} is waiting_input; answer the open correlated question with reply, not steer.`);
+      if (input.kind === 'steer' && run.state !== 'running') fail('RUN_NOT_ACTIVE', `Instance ${this.instanceId} run ${run.id} in session ${run.sessionId} is ${run.state}. ${terminalStates.includes(run.state) ? 'Observe its result and deliberately continue the session only if a safe checkpoint and current revalidation allow it; effects already made remain.' : 'Observe the current run state before steering.'}`);
       if (input.kind === 'reply') {
         const question = this.store.question(input.question_id);
         if (!question || question.runId !== run.id || question.state !== 'open' || run.state !== 'waiting_input') fail('QUESTION_CLOSED');

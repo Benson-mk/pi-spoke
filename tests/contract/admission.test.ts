@@ -18,8 +18,10 @@ test('P2: image admission snapshots, model rejection and changed project context
   const app = await createApplication(config, join(root, 'config.json'), 'test');
   try {
     const image = join(cwd, 'image.png'); const original = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jRZkAAAAASUVORK5CYII=', 'base64');
-    await writeFile(image, original); await writeFile(join(cwd, 'AGENTS.md'), 'ORIGINAL_CONTEXT');
-    const request = { request_key: 'image', task: 'describe image', cwd, tools: [], model: { provider: 'fixture', id: 'vision' }, attachments: [{ type: 'image', path: image }] };
+    const explicit = join(cwd, 'extra-context.txt');
+    await writeFile(image, original); await writeFile(join(cwd, 'AGENTS.md'), 'ORIGINAL_CONTEXT'); await writeFile(explicit, 'ANOTHER_CONTEXT');
+    const request = { request_key: 'image', task: 'describe image', cwd, tools: [], model: { provider: 'fixture', id: 'vision' },
+      context_files: [explicit], attachments: [{ type: 'image', path: image }] };
     await expect(app.service.spawn({ ...request, request_key: 'unsupported', model: { provider: 'fixture', id: 'text' } })).rejects.toMatchObject({ code: 'UNSUPPORTED_INPUT' });
     await expect(app.service.spawn({ ...request, request_key: 'missing', model: { provider: 'fixture', id: 'missing' } })).rejects.toMatchObject({ code: 'MODEL_UNAVAILABLE' });
     expect(provider.requests).toHaveLength(0);
@@ -31,8 +33,16 @@ test('P2: image admission snapshots, model rejection and changed project context
     expect(JSON.stringify(provider.requests)).toContain('image_url'); expect(JSON.stringify(provider.requests)).toContain('ORIGINAL_CONTEXT');
     expect(await app.service.spawn(request)).toEqual(receipt); expect(provider.requests).toHaveLength(1);
     await writeFile(join(cwd, 'AGENTS.md'), 'CHANGED_CONTEXT');
-    await expect(app.service.send({ kind: 'continue', request_key: 'changed', session_id: receipt.session_id, expected_last_run_id: receipt.run_id, message: 'continue' })).rejects.toMatchObject({ code: 'RESOURCE_CHANGED' });
+    await expect(app.service.send({ kind: 'continue', request_key: 'changed', session_id: receipt.session_id, expected_last_run_id: receipt.run_id, message: 'continue' })).rejects.toMatchObject({
+      code: 'RESOURCE_CHANGED', message: expect.stringContaining('mutable edit targets, read their current contents normally within the existing grant'),
+    });
     expect(app.store.getCommand('changed')).toBeUndefined();
+    await rm(explicit);
+    await expect(app.service.send({ kind: 'continue', request_key: 'deleted-context', session_id: receipt.session_id,
+      expected_last_run_id: receipt.run_id, message: 'continue' })).rejects.toMatchObject({
+      code: 'RESOURCE_CHANGED', message: expect.stringContaining('Pinned context'),
+    });
+    expect(app.store.getCommand('deleted-context')).toBeUndefined();
   } finally { await app.close(); await provider.close(); await rm(root, { recursive: true, force: true }); }
 }, 30000);
 

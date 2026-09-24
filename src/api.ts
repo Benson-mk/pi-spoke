@@ -100,7 +100,8 @@ export class Api {
       const run = this.app.store.getRun(session.lastRunId)!; const terminal = terminalStates.includes(run.state);
       return { instance_id: this.app.instanceId, session_id: session.id, created_at: session.created, updated_at: session.updated, model: session.input.model, cwd: session.policy.cwd,
         latest_run_id: run.id, latest_state: run.state, active_run_id: terminal ? null : run.id, checkpoint_available: !!session.checkpoint?.safe,
-        continuation_eligible: terminal && !!session.checkpoint?.safe && ['confirmed','operator_attested'].includes(run.cleanup), revalidation_required: true };
+        continuation_eligible: terminal && !!session.checkpoint?.safe && ['confirmed','operator_attested'].includes(run.cleanup), revalidation_required: true,
+        continuation_note: 'Eligibility is provisional; continuation revalidates expected last run, resources, authority, and cleanup.' };
     });
     return { ...page(items, input.cursor, input.limit, { cwd }), instance_id: this.app.instanceId };
   }

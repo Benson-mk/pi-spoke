@@ -9,6 +9,23 @@ import { SpokeError, fail } from '../core/errors.js';
 const decode = <T>(value: unknown): T => {
   try { return JSON.parse(String(value)) as T; } catch { fail('STATE_CORRUPT', 'Stored record is not valid JSON'); }
 };
+/** Read-only operator evidence path; it does not acquire or mutate the serving instance lock. */
+export function inspectStoredInvocations(directory: string, runId: string, after: number) {
+  const database = join(directory, 'state.sqlite');
+  if (lstatSync(directory).isSymbolicLink() || !lstatSync(directory).isDirectory() ||
+      lstatSync(database).isSymbolicLink() || !lstatSync(database).isFile()) fail('UNSAFE_PATH', 'Instance storage topology is unsafe for inspection');
+  const db = new DatabaseSync(database, { readOnly: true });
+  try {
+    if (!db.prepare('SELECT id FROM runs WHERE id=?').get(runId)) fail('INVALID_ARGUMENT', 'The run is unknown in this instance');
+    const rows = db.prepare('SELECT data FROM tool_invocations WHERE run_id=? ORDER BY rowid LIMIT 101 OFFSET ?').all(runId, after);
+    const invocations = rows.slice(0, 100).map(row => {
+      const item = decode<Invocation>(row.data);
+      return { invocation_id: item.id, tool_call_id: item.toolCallId, tool: item.kind, state: item.state,
+        cleanup_status: item.cleanup, evidence: item.evidence };
+    });
+    return { run_id: runId, invocations, next_after: rows.length > 100 ? after + 100 : null };
+  } finally { db.close(); }
+}
 export class Store {
   private readonly db: DatabaseSync;
   private readonly lock: string;

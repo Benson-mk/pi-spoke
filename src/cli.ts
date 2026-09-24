@@ -7,20 +7,20 @@ import { createApplication } from './app.js';
 import { readConfig } from './config.js';
 import { Api } from './api.js';
 import { mcpServer } from './mcp/server.js';
-import { doctor, sandboxCheck, refreshModels, recover, gc } from './operator.js';
+import { doctor, sandboxCheck, refreshModels, recover, gc, inspectInvocations } from './operator.js';
 import { SpokeError, fail } from './core/errors.js';
 
 async function main() {
   if (Number(process.versions.node.split('.')[0]) !== 24 || Number(process.versions.node.split('.')[1]) < 15) fail('UNSUPPORTED_RUNTIME', 'Use qualified Node 24.15.0 or later Node 24');
   const { positionals, values } = parseArgs({ allowPositionals: true, strict: true, options: {
-    config: { type: 'string' }, instance: { type: 'string' }, run: { type: 'string' }, 'older-than': { type: 'string' },
+    config: { type: 'string' }, instance: { type: 'string' }, run: { type: 'string' }, after: { type: 'string' }, 'older-than': { type: 'string' },
     'sandbox-check': { type: 'boolean' }, 'refresh-models': { type: 'boolean' }, 'acknowledge-cleanup': { type: 'boolean' },
     'dry-run': { type: 'boolean' }, delete: { type: 'boolean' }, help: { type: 'boolean' },
   } });
-  if (values.help) { console.log('pi-spoke <serve|doctor|recover|gc> --config /absolute/config.json --instance ID\nDoctor: --sandbox-check or --refresh-models\nRecover: --run ID --acknowledge-cleanup\nGC: --older-than DAYS --dry-run|--delete'); return; }
+  if (values.help) { console.log('pi-spoke <serve|doctor|recover|gc> --config /absolute/config.json --instance ID\nDoctor: --sandbox-check, --refresh-models, or --run ID [--after N] for helper evidence\nRecover: --run ID --acknowledge-cleanup\nGC: --older-than DAYS --dry-run|--delete'); return; }
   if (positionals.length !== 1 || !['serve','doctor','recover','gc'].includes(positionals[0]!)) fail('INVALID_ARGUMENT', 'Choose serve, doctor, recover or gc');
   if (!values.config || !values.instance || !/^[a-zA-Z0-9_-]{1,64}$/.test(values.instance)) fail('INVALID_ARGUMENT', 'Absolute --config and valid --instance are required');
-  const command = positionals[0]!, allowed: readonly string[] = { serve: [], doctor: ['sandbox-check','refresh-models'], recover: ['run','acknowledge-cleanup'], gc: ['older-than','dry-run','delete'] }[command]!;
+  const command = positionals[0]!, allowed: readonly string[] = { serve: [], doctor: ['sandbox-check','refresh-models','run','after'], recover: ['run','acknowledge-cleanup'], gc: ['older-than','dry-run','delete'] }[command]!;
   for (const key of Object.keys(values)) if (!['config','instance'].includes(key) && !allowed.includes(key)) fail('INVALID_ARGUMENT', 'Flag is not valid for this command');
   const config = await readConfig(values.config), root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
   if (command === 'serve') {
@@ -33,9 +33,10 @@ async function main() {
   }
   let result: unknown;
   if (command === 'doctor') {
-    if (values['sandbox-check'] && values['refresh-models']) fail('INVALID_ARGUMENT', 'Select one explicit doctor operation');
+    if (Number(!!values['sandbox-check']) + Number(!!values['refresh-models']) + Number(!!values.run) > 1 || (values.after && !values.run)) fail('INVALID_ARGUMENT', 'Select one explicit doctor operation');
     result = { ...await doctor(config, values.instance), ...(values['sandbox-check'] ? { sandbox_check: await sandboxCheck(root) } : {}),
-      ...(values['refresh-models'] ? { models: await refreshModels(config, values.instance) } : {}) };
+      ...(values['refresh-models'] ? { models: await refreshModels(config, values.instance) } : {}),
+      ...(values.run ? { helper_evidence: inspectInvocations(config, values.instance, values.run, values.after === undefined ? 0 : Number(values.after)) } : {}) };
   } else if (command === 'recover') {
     if (!values.run || !values['acknowledge-cleanup']) fail('INVALID_ARGUMENT', 'Recovery requires --run and explicit --acknowledge-cleanup');
     result = await recover(config, values.instance, values.run);

@@ -9,7 +9,7 @@ import type { Session, Run } from '../core/types.js';
 import type { SendInput } from '../contracts.js';
 import type { OperatorConfig } from '../config.js';
 import type { Store } from '../store/database.js';
-import { Sandbox } from '../sandbox/backend.js';
+import { Sandbox, SandboxLaunchUncertain } from '../sandbox/backend.js';
 import { validateWorkerMessage } from './ipc.js';
 import { within } from '../helpers/file-operations.js';
 import { digest } from '../core/idempotency.js';
@@ -138,35 +138,70 @@ export class Supervisor implements Runtime {
         }
         return;
       }
-      if (!entry.scratch) fail('SANDBOX_UNAVAILABLE');
       const previous = this.store.invocations(entry.run.id).find(item => item.toolCallId === message.callId);
       if (previous) fail('STATE_CORRUPT', 'Tool invocation cannot be automatically replayed');
+      const requestPath = message.args && typeof message.args === 'object' && 'path' in message.args ? message.args.path : undefined;
       const invocation = { id: 'inv_' + randomUUID(), runId: entry.run.id, toolCallId: message.callId, kind: message.tool, policyHash: entry.session.policy.policy_hash,
-        state: 'accepted' as const, evidence: { request_hash: digest(message.args) }, cleanup: 'pending' as const };
-      this.store.transaction(() => { this.store.putInvocation(invocation); this.store.event(entry.run.id, 'tool_started', { invocation_id: invocation.id, tool: message.tool }); });
+        state: 'accepted' as const, evidence: { request_hash: digest(message.args ?? null), stage: 'accepted', policy_hash: entry.session.policy.policy_hash,
+          operation_category: message.tool, path_category: typeof requestPath === 'string' ? 'requested_path' : 'not_applicable' }, cleanup: 'pending' as const };
+      this.store.transaction(() => { this.store.putInvocation(invocation); this.store.event(entry.run.id, 'tool_started',
+        { invocation_id: invocation.id, tool: message.tool, policy_hash: invocation.policyHash }); });
       const execute = async () => {
-        if (entry.closing) fail('RUN_NOT_ACTIVE');
-        this.store.transaction(() => this.store.putInvocation({ ...invocation, state: 'launched' }));
         try {
+          if (entry.closing) fail('RUN_NOT_ACTIVE');
+          if (!entry.scratch) fail('SANDBOX_UNAVAILABLE');
           if (message.tool === 'bash') entry.hadShell = true;
-          const result = await this.sandbox.tool(entry.run.id, entry.session.policy, entry.scratch!, message.tool, message.args);
+          const result = await this.sandbox.tool(entry.run.id, entry.session.policy, entry.scratch, message.tool, message.args, (stage, evidence) => {
+            this.store.transaction(() => {
+              const current = this.store.invocations(entry.run.id).find(item => item.id === invocation.id)!;
+              const previous = current.evidence as { launcher?: { pid: number; birth: string | null; group: number | null };
+                helper?: { pid: number; birth: string | null; group: number | null } };
+              const next = { ...evidence };
+              for (const key of ['launcher', 'helper'] as const) {
+                const incoming = evidence[key] as typeof previous.launcher | undefined;
+                const known = previous[key];
+                if (incoming && known?.pid === incoming.pid) next[key] = {
+                  pid: incoming.pid, birth: incoming.birth ?? known.birth, group: incoming.group ?? known.group,
+                };
+              }
+              this.store.putInvocation({ ...current, state: 'launched', evidence: { ...previous, stage, ...next } });
+              this.store.event(entry.run.id, 'tool_lifecycle', { invocation_id: invocation.id, stage, policy_hash: invocation.policyHash, ...evidence });
+            });
+          });
+          if (result.cleanup === 'unconfirmed') entry.uncertainTool = true;
           const diagnostic = 'diagnostic' in result ? result.diagnostic : undefined;
-          this.store.transaction(() => { this.store.putInvocation({ ...invocation, state: 'completed', cleanup: result.cleanup,
-            evidence: { ...invocation.evidence, exit_code: result.evidence.code, tool_error: result.result.isError === true,
-              policy_hash: result.evidence.policyHash, launcher_pid: result.evidence.launcherPid, ...(diagnostic ? { diagnostic } : {}) } });
-            this.store.event(entry.run.id, 'tool_ended', { invocation_id: invocation.id, tool: message.tool, cleanup_status: result.cleanup,
+          this.store.transaction(() => { const current = this.store.invocations(entry.run.id).find(item => item.id === invocation.id)!;
+            this.store.putInvocation({ ...current, state: 'completed', cleanup: result.cleanup,
+            evidence: { ...(current.evidence as object), stage: 'settled', exit_code: result.evidence.code, tool_error: result.result.isError === true,
+              sandbox_policy_hash: result.evidence.policyHash, launcher_pid: result.evidence.launcherPid,
+              ...(diagnostic ? { diagnostic } : {}) } });
+            this.store.event(entry.run.id, 'tool_ended', { invocation_id: invocation.id, tool: message.tool, policy_hash: invocation.policyHash, cleanup_status: result.cleanup,
               exit_code: result.evidence.code, ...(diagnostic ? { diagnostic } : {}) }); });
           if (!entry.closing) this.post(entry, { kind: 'tool_result', callId: message.callId, result: result.result });
         } catch (error) {
-          entry.uncertainTool = true;
-          this.store.transaction(() => this.store.putInvocation({ ...invocation, state: 'uncertain', cleanup: 'unconfirmed', evidence: { ...invocation.evidence, error: 'TOOL_FAILED' } }));
+          const current = this.store.invocations(entry.run.id).find(item => item.id === invocation.id)!;
+          const stage = (current.evidence as { stage?: string }).stage ?? 'accepted';
+          const neverLaunched = stage === 'accepted' && !(error instanceof SandboxLaunchUncertain);
+          const failedStage = neverLaunched ? 'rejected_before_launch' : stage === 'accepted' ? 'launcher_ownership_unconfirmed' : stage;
+          if (!neverLaunched) entry.uncertainTool = true;
+          const cause = error instanceof SandboxLaunchUncertain ? error.cause : error;
+          const category = cause instanceof SpokeError ? cause.code : cause instanceof z.ZodError ? 'INVALID_ARGUMENT' : 'TOOL_OUTCOME_UNCERTAIN';
+          const detail = neverLaunched ? category === 'INVALID_ARGUMENT' ? 'The helper input failed validation before launch.' :
+            'The sandbox launcher did not start.' :
+            stage === 'launcher_started' ? 'The launcher started; helper launch and outcome are unknown.' :
+              'The helper outcome or descendant cleanup could not be confirmed.';
+          this.store.transaction(() => {
+            this.store.putInvocation({ ...current, state: neverLaunched ? 'completed' : 'uncertain', cleanup: neverLaunched ? 'confirmed' : 'unconfirmed',
+              evidence: { ...(current.evidence as object), stage: failedStage, error_category: category, diagnostic: detail } });
+            this.store.event(entry.run.id, 'tool_ended', { invocation_id: invocation.id, tool: message.tool, policy_hash: invocation.policyHash, stage: failedStage,
+              error_category: category, diagnostic: detail, cleanup_status: neverLaunched ? 'confirmed' : 'unconfirmed' });
+          });
           // An uncertain execution outcome is a stop condition, never a prompt to retry a mutation.
           if (!entry.closing) void this.service?.cancel(entry.run.id, error instanceof SpokeError ? error.code : 'TOOL_OUTCOME_UNCERTAIN');
         }
       };
-      const args = message.args as { path?: unknown };
-      if ((message.tool === 'edit' || message.tool === 'write') && typeof args.path === 'string') {
-        const path = resolve(entry.session.policy.cwd, args.path);
+      if ((message.tool === 'edit' || message.tool === 'write') && typeof requestPath === 'string') {
+        const path = resolve(entry.session.policy.cwd, requestPath);
         const canonical = await realpath(path).catch(() => path);
         const key = process.platform === 'darwin' ? canonical.normalize('NFD').toLowerCase() : canonical;
         const prior = this.mutationLocks.get(key) ?? Promise.resolve();

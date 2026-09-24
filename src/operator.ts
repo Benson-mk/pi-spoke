@@ -4,7 +4,7 @@ import { platform, arch } from 'node:os';
 import { randomUUID } from 'node:crypto';
 import { ModelRuntime } from '@earendil-works/pi-coding-agent';
 import type { OperatorConfig } from './config.js';
-import { Store } from './store/database.js';
+import { Store, inspectStoredInvocations } from './store/database.js';
 import { fail } from './core/errors.js';
 import { terminalStates } from './core/types.js';
 import { reopenCheckpoint } from './pi/checkpoints.js';
@@ -21,6 +21,11 @@ export async function doctor(config: OperatorConfig, instance: string) {
     sandbox_check: 'NOT RUN; use --sandbox-check', release_ready: null, release_assessment: 'Not assessed by doctor; see the release acceptance ledger',
     limitations: ['macOS/Linux adapters; exact qualified identities required', 'arbitrary shell descendant cleanup unconfirmed', 'project shell-write roots rejected'],
     live_provider_tests: 'NOT RUN; explicitly opt-in' };
+}
+/** Read a single instance's recorded helper ownership without acquiring its server lock. */
+export function inspectInvocations(config: OperatorConfig, instance: string, runId: string, after = 0) {
+  if (!/^run_[a-f0-9-]+$/.test(runId) || !Number.isSafeInteger(after) || after < 0) fail('INVALID_ARGUMENT', 'Valid --run and nonnegative --after are required');
+  return inspectStoredInvocations(join(config.state_dir, instance), runId, after);
 }
 export async function sandboxCheck(runtimeRoot: string) {
   if (!['darwin', 'linux'].includes(platform())) fail('SANDBOX_UNAVAILABLE', 'This adapter requires a qualified macOS or Linux host');
@@ -51,15 +56,31 @@ export async function recover(config: OperatorConfig, instance: string, runId: s
     const run = store.getRun(runId); if (!run) fail('INVALID_ARGUMENT', 'Unknown run');
     if (!terminalStates.includes(run.state)) fail('RUN_NOT_ACTIVE', 'Start the supervisor once to record interrupted startup recovery before attestation');
     const session = store.getSession(run.sessionId)!;
-    const pids = store.events(runId, 0, 100000).filter(event => event.type === 'worker_started').map(event => (event.payload as { pid: number }).pid);
+    const pids = new Set(store.events(runId, 0, 100000).filter(event => event.type === 'worker_started').map(event => (event.payload as { pid: number }).pid));
+    const groups = new Set<number>();
     for (const invocation of store.invocations(runId)) {
-      const evidence = invocation.evidence as { launcher_pid?: number }; if (evidence.launcher_pid) pids.push(evidence.launcher_pid);
+      const evidence = invocation.evidence as { launcher_pid?: number; launcher?: { pid?: number | null; birth?: string | null; group?: number | null };
+        helper?: { pid?: number | null; birth?: string | null; group?: number | null } };
+      if (evidence.launcher_pid !== undefined) pids.add(evidence.launcher_pid);
+      for (const identity of [evidence.launcher, evidence.helper]) if (identity) {
+        if (identity.pid != null) pids.add(identity.pid);
+        if (identity.group != null) groups.add(identity.group);
+      }
     }
+    const requireAbsent = (id: number, group: boolean) => {
+      if (!Number.isSafeInteger(id) || id < 1) fail('STATE_CORRUPT', 'Recorded process identity is invalid');
+      try { process.kill(group ? -id : id, 0); }
+      catch (error) {
+        if ((error as NodeJS.ErrnoException).code === 'ESRCH') return;
+        fail('CLEANUP_UNCONFIRMED', 'Recorded process ownership could not be inspected; review it before recovery');
+      }
+      fail('CLEANUP_UNCONFIRMED', group ? 'A recorded process group may still be live; inspect descendants before recovery' :
+        'A recorded process PID is still live or reused; inspect ownership before recovery');
+    };
     for (const pid of pids) {
-      if (!Number.isSafeInteger(pid) || pid < 1) fail('STATE_CORRUPT');
-      try { process.kill(pid, 0); fail('CLEANUP_UNCONFIRMED', 'A recorded process PID is still live; inspect ownership before recovery'); }
-      catch (error) { if ((error as NodeJS.ErrnoException).code !== 'ESRCH') throw error; }
+      requireAbsent(pid, false);
     }
+    for (const group of groups) requireAbsent(group, true);
     if (session.checkpoint) await reopenCheckpoint(session.checkpoint);
     store.transaction(() => {
       store.putRun({ ...run, cleanup: 'operator_attested', updated: Date.now() });

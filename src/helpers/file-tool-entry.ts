@@ -4,6 +4,7 @@ import { createEditTool, createReadTool } from '@earendil-works/pi-coding-agent'
 import { readdir, lstat } from 'node:fs/promises';
 import { spawn } from 'node:child_process';
 import { join } from 'node:path';
+import { fileDiagnostic } from './diagnostics.js';
 
 const authority = z.strictObject({ cwd: z.string(), roots: z.array(z.string()), protectedPaths: z.array(z.string()) });
 const message = z.discriminatedUnion('operation', [
@@ -53,11 +54,12 @@ try {
     // The executable is supplied by the trusted parent, never found through workspace PATH.
     if (!request.rg.startsWith('/') || !(await lstat(request.rg)).isFile()) throw new Error('SANDBOX_UNAVAILABLE');
     const child = spawn(request.rg, argv, { cwd: request.authority.cwd, stdio: ['ignore','pipe','pipe'], shell: false });
-    let stdout = '', stderr = '', truncated = false;
+    let stdout = '', truncated = false;
     child.stdout.on('data', bytes => { const combined = Buffer.concat([Buffer.from(stdout), bytes]); stdout = combined.subarray(0,16000).toString(); if (combined.length > 16000) { truncated = true; child.kill('SIGTERM'); } });
-    child.stderr.on('data', bytes => { stderr = Buffer.concat([Buffer.from(stderr), bytes]).subarray(0,4096).toString(); });
+    child.stderr.on('data', () => {}); // Search errors are classified without publishing rg path/output text.
     const code = await new Promise<number | null>((done, reject) => { child.once('error', reject); child.once('close', done); });
     const lines = stdout.split('\n').filter(Boolean), limit = request.limit ?? 100;
-    console.log(JSON.stringify({ text: lines.slice(0, limit).join('\n') + ((lines.length > limit || truncated) ? '\n[truncated]' : '') + (stderr ? '\n' + stderr : ''), exit_code: code }));
+    if (!truncated && code !== 0 && !(request.operation === 'grep' && code === 1)) throw new Error('SEARCH_FAILED');
+    console.log(JSON.stringify({ text: lines.slice(0, limit).join('\n') + ((lines.length > limit || truncated) ? '\n[truncated]' : ''), exit_code: code }));
   }
-} catch (error) { console.log(JSON.stringify({ error: error instanceof Error ? error.message : 'INTERNAL_ERROR' })); process.exitCode = 1; }
+} catch (error) { const diagnostic = fileDiagnostic(error); console.log(JSON.stringify({ error: diagnostic.category, diagnostic })); process.exitCode = 1; }

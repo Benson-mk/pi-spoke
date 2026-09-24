@@ -150,9 +150,12 @@ export class Supervisor implements Runtime {
         try {
           if (message.tool === 'bash') entry.hadShell = true;
           const result = await this.sandbox.tool(entry.run.id, entry.session.policy, entry.scratch!, message.tool, message.args);
+          const diagnostic = 'diagnostic' in result ? result.diagnostic : undefined;
           this.store.transaction(() => { this.store.putInvocation({ ...invocation, state: 'completed', cleanup: result.cleanup,
-            evidence: { ...invocation.evidence, exit_code: result.evidence.code, policy_hash: result.evidence.policyHash, launcher_pid: result.evidence.launcherPid } });
-            this.store.event(entry.run.id, 'tool_ended', { invocation_id: invocation.id, cleanup_status: result.cleanup, exit_code: result.evidence.code }); });
+            evidence: { ...invocation.evidence, exit_code: result.evidence.code, tool_error: result.result.isError === true,
+              policy_hash: result.evidence.policyHash, launcher_pid: result.evidence.launcherPid, ...(diagnostic ? { diagnostic } : {}) } });
+            this.store.event(entry.run.id, 'tool_ended', { invocation_id: invocation.id, tool: message.tool, cleanup_status: result.cleanup,
+              exit_code: result.evidence.code, ...(diagnostic ? { diagnostic } : {}) }); });
           if (!entry.closing) this.post(entry, { kind: 'tool_result', callId: message.callId, result: result.result });
         } catch (error) {
           entry.uncertainTool = true;

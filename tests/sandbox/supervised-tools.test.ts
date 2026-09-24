@@ -7,14 +7,17 @@ import { resolvePolicy } from '../../src/security/policy.js';
 import { Store } from '../../src/store/database.js';
 import { Supervisor } from '../../src/runtime/supervisor.js';
 import { Service } from '../../src/core/service.js';
+import { Api } from '../../src/api.js';
 
 test('real Pi worker uses guarded read/search/write/edit through actual SRT; shell authority stays separate', async () => {
   const root = await realpath(await mkdtemp('/private/tmp/ps-tools-')), cwd = join(root, 'project'); await mkdir(cwd);
   await writeFile(join(cwd, 'source.txt'), 'before');
+  await Promise.all(Array.from({ length: 300 }, (_, index) => writeFile(join(cwd, `synthetic-${String(index).padStart(4, '0')}-${'x'.repeat(72)}.long`), 'fixture')));
   const calls = [
     { name: 'read', arguments: { path: 'source.txt' } },
     { name: 'ls', arguments: {} },
     { name: 'find', arguments: { pattern: '*.txt' } },
+    { name: 'find', arguments: { pattern: '*.long' } },
     { name: 'grep', arguments: { pattern: 'before' } },
     { name: 'write', arguments: { path: 'new/nested.txt', content: 'data' } },
     { name: 'edit', arguments: { path: 'source.txt', edits: [{ oldText: 'before', newText: 'after' }] } },
@@ -38,8 +41,49 @@ test('real Pi worker uses guarded read/search/write/edit through actual SRT; she
     expect(store.invocations(run.id).every(invocation => invocation.state === 'completed')).toBe(true);
     expect(run.effective).toMatchObject({ execution_mode: 'sandboxed-tools', shell_write_roots: [], sandbox_scope: 'tool-subprocesses' });
     expect(JSON.stringify(provider.requests)).toContain('before');
+    expect(JSON.stringify(provider.requests)).toContain('[truncated]');
   } finally {
     for (const run of store.runs()) if (['starting','running','waiting_input','stopping'].includes(run.state)) await service.cancel(run.id);
     await service.drain().catch(() => {}); store.close(); await provider.close(); await rm(root, { recursive: true, force: true });
   }
+}, 45000);
+
+
+test('file failure diagnostics survive corrected work and paged durable observation', async () => {
+  const root = await realpath(await mkdtemp('/private/tmp/ps-errors-')), cwd = join(root, 'p'); await mkdir(cwd);
+  await mkdir(join(cwd, 'directory'));
+  await writeFile(join(cwd, 'large'), 'x'.repeat(1024 * 1024 + 1));
+  await writeFile(join(cwd, 'binary'), Buffer.from([0, 1]));
+  await writeFile(join(cwd, 'utf8'), Buffer.from([0xff]));
+  await writeFile(join(cwd, 'source'), 'original');
+  const secret = 'sk-syntheticsecret123456';
+  const calls = ['directory', 'large', 'binary', 'utf8'].map(path => ({ name: 'read', arguments: { path } as object }));
+  calls.push({ name: 'edit', arguments: { path: 'source', edits: [{ oldText: secret, newText: 'changed' }] } },
+    { name: 'edit', arguments: { path: 'source', edits: [{ oldText: 'original', newText: 'changed' }] } });
+  const provider = await httpProvider((_request, index) => calls[index] ? { tool: calls[index] } : { text: 'recovered' });
+  const models = join(root, 'models.json');
+  await writeFile(models, JSON.stringify({ providers: { fixture: { api: 'openai-completions', baseUrl: provider.url, apiKey: 'fake', models: [{ id: 'model', input: ['text'], contextWindow: 128000, maxTokens: 4096 }] } } }));
+  const config = parseConfig({ version: 2, state_dir: join(root, 's'), scratch_dir: join(root, 't'), workspace_roots: [cwd], allowed_tools: ['read', 'edit'], permissions: { file_write_roots: [cwd] }, pi: { auth_path: join(root, 'auth'), models_path: models }, sandbox: { backend: 'srt', required: true, tool_network: 'none' } });
+  const store = new Store(config.state_dir), runtime = new Supervisor(config, store, resolve('.'));
+  const service = new Service(store, runtime, input => resolvePolicy(config, input, join(root, 'config'), resolve('.'))); runtime.attach(service);
+  try {
+    const receipt = await service.spawn({ request_key: 'diagnostics', task: 'exercise failures then correct edit', cwd, model: { provider: 'fixture', id: 'model' }, tools: ['read', 'edit'], permissions: { file_write_roots: [cwd] } });
+    await service.drain();
+    expect((await service.observe(receipt.run_id)).run.state).toBe('completed');
+    const events = []; let after = 0;
+    for (;;) { const page = await service.observe(receipt.run_id, after, 0, 1); if (!page.events.length) break; events.push(...page.events); after = page.events[0]!.seq; }
+    const ended = events.filter(event => event.type === 'tool_ended').map(event => event.payload as Record<string, any>);
+    expect(ended.map(event => event.diagnostic?.category ?? null)).toEqual(['DIRECTORY_INPUT', 'FILE_TOO_LARGE', 'BINARY_INPUT', 'INVALID_UTF8', 'EDIT_MISMATCH', null]);
+    expect(ended[0]).toMatchObject({ tool: 'read', exit_code: 1, cleanup_status: 'confirmed', diagnostic: { truncated: false } });
+    expect(JSON.stringify(ended)).not.toContain(secret);
+    expect(JSON.stringify(store.invocations(receipt.run_id))).not.toContain(secret);
+    const api = new Api({ service, store, instanceId: 'fixture' } as ConstructorParameters<typeof Api>[0]);
+    const mcpEvents: any[] = []; let mcpAfter = 0;
+    for (;;) { const page = await api.observe({ run_id: receipt.run_id, view: 'events', after_seq: mcpAfter, limit: 100 });
+      if (!('events' in page)) throw new Error('Expected an event observation');
+      mcpEvents.push(...page.events); if (!page.events_truncated) break; mcpAfter = page.next_after_seq; }
+    expect(JSON.stringify(mcpEvents)).not.toContain(secret);
+    expect(mcpEvents.some(event => event.type === 'tool_ended' && event.payload.diagnostic?.category === 'DIRECTORY_INPUT')).toBe(true);
+    expect(await readFile(join(cwd, 'source'), 'utf8')).toBe('changed');
+  } finally { await service.shutdown(); store.close(); await provider.close(); await rm(root, { recursive: true, force: true }); }
 }, 45000);

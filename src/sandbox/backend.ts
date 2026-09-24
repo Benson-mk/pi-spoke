@@ -12,6 +12,7 @@ import { fail, SpokeError } from '../core/errors.js';
 import { within } from '../helpers/file-operations.js';
 import { verifyQualification } from './qualification.js';
 import { ripgrepSha256, linuxRipgrepSha256 } from './qualification-pins.js';
+import type { FileDiagnostic } from '../helpers/diagnostics.js';
 
 const quote = (text: string) => "'" + text.replaceAll("'", "'\\''") + "'";
 const here = dirname(fileURLToPath(import.meta.url));
@@ -106,7 +107,10 @@ export class Sandbox {
     const payload = { ...input, operation, authority, ...(rg ? { rg } : {}) };
     const result = await this.invoke(runId, policy, scratch, `${quote(process.execPath)} ${quote(join(this.runtimeRoot, 'dist/helpers/file-tool-entry.js'))}`, JSON.stringify(payload), name === 'edit' || name === 'write');
     let response; try { response = JSON.parse(result.stdout); } catch { fail('SANDBOX_SETUP_FAILED', 'File helper result is invalid'); }
-    if (response.error) return { result: { content: [{ type: 'text', text: response.error }], details: { error: true }, isError: true }, cleanup: 'confirmed' as const, evidence: result };
+    if (response.error) {
+      const diagnostic = z.strictObject({ category: z.string().max(64), detail: z.string().max(512), truncated: z.boolean() }).parse(response.diagnostic) as FileDiagnostic;
+      return { result: { content: [{ type: 'text', text: diagnostic.detail }], details: { error: true }, isError: true }, cleanup: 'confirmed' as const, evidence: result, diagnostic };
+    }
     return { result: response.content ? response : { content: [{ type: 'text', text: response.text ?? 'File written.' }], details: {} }, cleanup: 'confirmed' as const, evidence: result };
   }
   async cancel(runId: string): Promise<'confirmed' | 'unconfirmed'> {

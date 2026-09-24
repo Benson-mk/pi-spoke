@@ -23,13 +23,13 @@ export class Service {
   private durabilityError: unknown;
   private shuttingDown = false;
   constructor(readonly store: Store, private readonly runtime: Runtime,
-    private readonly prepare: (input: SpawnInput) => Promise<ResolvedPolicy>, private readonly maxActive = 3) {}
-  private run(id: string): Run { const run = this.store.getRun(id); if (!run) fail('INVALID_ARGUMENT', 'Unknown run'); return run; }
-  private session(id: string): Session { const session = this.store.getSession(id); if (!session) fail('INVALID_ARGUMENT', 'Unknown session'); return session; }
+    private readonly prepare: (input: SpawnInput) => Promise<ResolvedPolicy>, private readonly maxActive = 3, readonly instanceId = store.instanceId) {}
+  private run(id: string): Run { const run = this.store.getRun(id); if (!run) fail('INVALID_ARGUMENT', `Unknown run in current MCP instance ${this.instanceId}; a handle may belong to another connection. Check the saved owning connection and instance_id.`); return run; }
+  private session(id: string): Session { const session = this.store.getSession(id); if (!session) fail('INVALID_ARGUMENT', `Unknown session in current MCP instance ${this.instanceId}; a handle may belong to another connection. Check the saved owning connection and instance_id.`); return session; }
   private prior(key: string, operation: string, input: unknown): Receipt | undefined {
     const command = this.store.getCommand(key); if (!command) return undefined;
     if (command.operation !== operation || command.hash !== digest(input)) fail('IDEMPOTENCY_CONFLICT');
-    return command.receipt;
+    return { ...command.receipt, instance_id: this.instanceId };
   }
   private transition(run: Run, state: RunState, changes: Partial<Run> = {}) {
     assertTransition(run.state, state);
@@ -68,7 +68,7 @@ export class Service {
     const run: Run = { id: runId, sessionId: session.id, input, state: 'starting', created: now, updated: now, effective: null, reason: null, cleanup: 'pending', outputPath: null };
     this.store.putRun(run);
     this.store.putSession({ ...session, lastRunId: runId, updated: now });
-    const receipt: Receipt = { protocol_version: 1, session_id: session.id, run_id: runId, state: 'starting', receipt: 'accepted', effective_config: null };
+    const receipt: Receipt = { protocol_version: 1, instance_id: this.instanceId, session_id: session.id, run_id: runId, state: 'starting', receipt: 'accepted', effective_config: null };
     this.store.putCommand({ key: input.request_key, operation, hash: digest(input), receipt, delivery: 'accepted' });
     this.store.event(runId, 'accepted', receipt);
     return receipt;
@@ -164,7 +164,7 @@ export class Service {
         this.store.event(run.id, 'question_answered', { question_id: question.id });
         if (!this.store.questions(run.id).some(q => q.state === 'open')) this.transition(run, 'running');
       }
-      const receipt: Receipt = { protocol_version: 1, session_id: run.sessionId, run_id: run.id, state: run.state, receipt: 'accepted', effective_config: null };
+      const receipt: Receipt = { protocol_version: 1, instance_id: this.instanceId, session_id: run.sessionId, run_id: run.id, state: run.state, receipt: 'accepted', effective_config: null };
       this.store.putCommand({ key: input.request_key, operation: input.kind, hash: digest(input), receipt, delivery: 'accepted' });
       this.store.event(run.id, input.kind + '_queued', { request_key: input.request_key });
       return receipt;

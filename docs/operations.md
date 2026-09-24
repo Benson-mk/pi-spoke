@@ -65,6 +65,15 @@ explicitly, use self-contained tasks, retain request keys across retries, observ
 without adding turns, and answer the exact pending question ID. Observation
 never acknowledges questions. MCP approvals do not enlarge session permissions.
 
+Keep the MCP connection and returned `instance_id` alongside each `session_id`
+and `run_id`. The instance identity is an opaque, persistent identifier for its
+private state store; two connections can use the same configured `--instance`
+label under different state roots and still own different handles. Catalog,
+receipts, sessions, and observations show the identity. An unknown handle is
+looked up only in the current connection; check the recorded owning connection
+before assuming work disappeared. Reopening that instance preserves saved
+sessions.
+
 Manual host gate (PASS, recorded 2026-09-14): discover all six tools in Codex, choose model and
 permissions explicitly, spawn while doing independent host work, observe,
 question/reply, steer, continue and cancel. Verify a task can remain entirely

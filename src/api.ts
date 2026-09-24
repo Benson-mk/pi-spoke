@@ -88,22 +88,22 @@ export class Api {
     if (input.query) { const query = input.query.toLowerCase(); items = items.filter(item => {
       const value = item as { name?: string; description?: string | null; id?: string; provider?: string }; return [value.name,value.description,value.id,value.provider].some(field => field?.toLowerCase().includes(query));
     }); }
-    return page(items, input.cursor, input.limit, { kind: input.kind, cwd: scope?.cwd, query: input.query });
+    return { ...page(items, input.cursor, input.limit, { kind: input.kind, cwd: scope?.cwd, query: input.query }), instance_id: this.app.instanceId };
   }
   async sessions(raw: unknown) {
     const parsed = sessionsSchema.safeParse(raw); if (!parsed.success) fail('INVALID_ARGUMENT'); const input = parsed.data;
     const cwd = input.cwd ? (await this.workspace(input.cwd)).cwd : undefined;
     const items = this.app.store.sessions().filter(session => !cwd || session.policy.cwd === cwd).map(session => {
       const run = this.app.store.getRun(session.lastRunId)!; const terminal = terminalStates.includes(run.state);
-      return { session_id: session.id, created_at: session.created, updated_at: session.updated, model: session.input.model, cwd: session.policy.cwd,
+      return { instance_id: this.app.instanceId, session_id: session.id, created_at: session.created, updated_at: session.updated, model: session.input.model, cwd: session.policy.cwd,
         latest_run_id: run.id, latest_state: run.state, active_run_id: terminal ? null : run.id, checkpoint_available: !!session.checkpoint?.safe,
         continuation_eligible: terminal && !!session.checkpoint?.safe && ['confirmed','operator_attested'].includes(run.cleanup), revalidation_required: true };
     });
-    return page(items, input.cursor, input.limit, { cwd });
+    return { ...page(items, input.cursor, input.limit, { cwd }), instance_id: this.app.instanceId };
   }
   async observe(raw: unknown) {
     const parsed = observeSchema.safeParse(raw); if (!parsed.success) fail('INVALID_ARGUMENT'); const input = parsed.data;
-    if (input.view === 'output') return { protocol_version: 1, run_id: input.run_id, ...await this.app.service.output(input.run_id, input.offset_bytes, input.max_bytes) };
+    if (input.view === 'output') return { protocol_version: 1, instance_id: this.app.instanceId, run_id: input.run_id, ...await this.app.service.output(input.run_id, input.offset_bytes, input.max_bytes) };
     const observed = await this.app.service.observe(input.run_id, input.after_seq, input.wait_ms, input.limit);
     const output = await this.app.service.output(input.run_id, 0, 3072);
     const events: object[] = []; let bytes = 0, truncated = false;
@@ -114,7 +114,7 @@ export class Api {
     }
     const questions = observed.questions.map(question => ({ question_id: question.id, ...preview(redact(question.message), 768) }));
     const effective = preview(JSON.stringify(resourceSummary(observed.run.effective)), 3072);
-    return { protocol_version: 1, ...runSummary(observed.run), timed_out: observed.timed_out, durability_error: observed.durability_error,
+    return { protocol_version: 1, instance_id: this.app.instanceId, ...runSummary(observed.run), timed_out: observed.timed_out, durability_error: observed.durability_error,
       usage: observed.run.metrics ?? null, tool_count: this.app.store.invocations(input.run_id).length,
       effective_config: effective.truncated ? { preview: effective.text, truncated: true } : JSON.parse(effective.text),
       questions: questions.slice(0,4), questions_truncated: questions.length > 4, events,
@@ -122,7 +122,7 @@ export class Api {
       events_truncated: truncated || this.app.store.events(input.run_id, events.length ? (events.at(-1) as { seq: number }).seq : input.after_seq, 1).length > 0,
       output_preview: output.text, output_truncated: output.truncated, next_offset_bytes: output.next_offset_bytes };
   }
-  async cancel(raw: unknown) { const parsed = cancelSchema.safeParse(raw); if (!parsed.success) fail('INVALID_ARGUMENT'); return { protocol_version: 1, ...runSummary(await this.app.service.cancel(parsed.data.run_id, parsed.data.reason)) }; }
+  async cancel(raw: unknown) { const parsed = cancelSchema.safeParse(raw); if (!parsed.success) fail('INVALID_ARGUMENT'); return { protocol_version: 1, instance_id: this.app.instanceId, ...runSummary(await this.app.service.cancel(parsed.data.run_id, parsed.data.reason)) }; }
   spawn(raw: unknown) { return this.app.service.spawn(raw); }
   send(raw: unknown) { return this.app.service.send(raw); }
 }

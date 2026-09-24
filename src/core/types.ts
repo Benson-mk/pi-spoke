@@ -5,7 +5,7 @@ export type RunState = 'starting' | 'running' | 'waiting_input' | 'stopping' | '
 export type CleanupStatus = 'pending' | 'confirmed' | 'unconfirmed' | 'operator_attested';
 export const terminalStates: RunState[] = ['completed', 'failed', 'cancelled', 'interrupted'];
 export type Checkpoint = { path: string; leaf: string; hash: string; bytes?: number; safe: true };
-export type Receipt = { protocol_version: 1; session_id: string; run_id: string; state: RunState; receipt: 'accepted'; effective_config: null };
+export type Receipt = { protocol_version: 1; instance_id: string; session_id: string; run_id: string; state: RunState; receipt: 'accepted'; effective_config: null };
 export type Session = { id: string; input: SpawnInput; policy: ResolvedPolicy; created: number; updated: number;
   lastRunId: string; checkpoint: Checkpoint | null; piSession: { id: string; path: string } | null };
 export type Run = { id: string; sessionId: string; state: RunState; input: SpawnInput | SendInput; created: number; updated: number;

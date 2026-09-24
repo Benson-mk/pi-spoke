@@ -27,7 +27,7 @@ test('P4: doctor is read-oriented; recovery refuses live recorded processes; GC 
     store.transaction(() => {
       store.putSession({ id: 'ses_fixture', input, policy, created: 1, updated: 1, lastRunId: 'run_abcd', checkpoint: null, piSession: null });
       store.putRun({ id: 'run_abcd', sessionId: 'ses_fixture', input, created: 1, updated: 1, state: 'interrupted', cleanup: 'unconfirmed', effective: null, reason: 'SUPERVISOR_LOST', outputPath: null });
-      store.putCommand({ key: 'retained', operation: 'spawn', hash: 'hash', delivery: 'uncertain', receipt: { protocol_version: 1, session_id: 'ses_fixture', run_id: 'run_abcd', state: 'starting', receipt: 'accepted', effective_config: null } });
+      store.putCommand({ key: 'retained', operation: 'spawn', hash: 'hash', delivery: 'uncertain', receipt: { protocol_version: 1, instance_id: store.instanceId, session_id: 'ses_fixture', run_id: 'run_abcd', state: 'starting', receipt: 'accepted', effective_config: null } });
       store.event('run_abcd', 'worker_started', { pid: process.pid });
     }); store.close();
     await expect(recover(config, 'test', 'run_abcd')).rejects.toMatchObject({ code: 'CLEANUP_UNCONFIRMED' });

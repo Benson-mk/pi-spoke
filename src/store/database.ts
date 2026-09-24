@@ -13,6 +13,7 @@ export class Store {
   private readonly db: DatabaseSync;
   private readonly lock: string;
   private readonly token = randomUUID();
+  readonly instanceId: string;
   constructor(readonly directory: string) {
     mkdirSync(directory, { recursive: true, mode: 0o700 });
     if (lstatSync(directory).isSymbolicLink()) fail('UNSAFE_PATH');
@@ -60,6 +61,25 @@ export class Store {
         CREATE TABLE questions(id TEXT PRIMARY KEY, run_id TEXT NOT NULL REFERENCES runs(id), tool_call_id TEXT NOT NULL, data TEXT NOT NULL, UNIQUE(run_id,tool_call_id));
         CREATE TABLE tool_invocations(id TEXT PRIMARY KEY, run_id TEXT NOT NULL REFERENCES runs(id), tool_call_id TEXT NOT NULL, data TEXT NOT NULL, UNIQUE(run_id,tool_call_id));
         PRAGMA user_version=1; COMMIT;`);
+      // This sidecar belongs to the database directory, never to a caller-supplied handle.
+      // Legacy stores receive an identity on first open and retain it on later opens.
+      const identityPath = join(directory, 'instance-id');
+      try {
+        lstatSync(identityPath);
+      } catch (error) {
+        if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error;
+        const temporary = identityPath + '.' + randomUUID();
+        const fd = openSync(temporary, 'wx', 0o600);
+        try { writeFileSync(fd, 'inst_' + randomUUID()); fsyncSync(fd); } finally { closeSync(fd); }
+        renameSync(temporary, identityPath);
+        const dir = openSync(directory, 'r'); try { fsyncSync(dir); } finally { closeSync(dir); }
+      }
+      if (!lstatSync(identityPath).isFile() || lstatSync(identityPath).isSymbolicLink()) {
+        this.db.close(); fail('STATE_CORRUPT', 'Instance identity is not a regular file');
+      }
+      const identity = readFileSync(identityPath, 'utf8');
+      if (!/^inst_[a-f0-9-]{36}$/.test(identity)) { this.db.close(); fail('STATE_CORRUPT', 'Instance identity is invalid'); }
+      this.instanceId = identity;
       for (const path of [directory, dirname(directory)]) { const fd = openSync(path, 'r'); try { fsyncSync(fd); } finally { closeSync(fd); } }
     } catch (error) { this.releaseLock(); throw error; }
   }

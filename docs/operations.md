@@ -34,6 +34,7 @@ node /absolute/pi-spoke/dist/cli.js serve --config /absolute/pi-spoke.json --ins
 node /absolute/pi-spoke/dist/cli.js doctor --config /absolute/pi-spoke.json --instance project-a
 node /absolute/pi-spoke/dist/cli.js doctor --config /absolute/pi-spoke.json --instance project-a --sandbox-check
 node /absolute/pi-spoke/dist/cli.js doctor --config /absolute/pi-spoke.json --instance project-a --refresh-models
+node /absolute/pi-spoke/dist/cli.js doctor --config /absolute/pi-spoke.json --instance project-a --run run_ID
 node /absolute/pi-spoke/dist/cli.js recover --config /absolute/pi-spoke.json --instance project-a --run run_ID --acknowledge-cleanup
 node /absolute/pi-spoke/dist/cli.js gc --config /absolute/pi-spoke.json --instance project-a --older-than 30 --dry-run
 node /absolute/pi-spoke/dist/cli.js gc --config /absolute/pi-spoke.json --instance project-a --older-than 30 --delete
@@ -41,11 +42,19 @@ node /absolute/pi-spoke/dist/cli.js gc --config /absolute/pi-spoke.json --instan
 
 Plain doctor reads configuration and host readiness without creating state,
 clearing locks, changing security settings or running inference. The explicit
+sandbox helper inspection (`doctor --run run_ID [--after N]`) reads up to 100
+invocation records at a time from only the selected instance. It records
+accepted, launcher/helper process identity when known, final stage, bounded
+diagnostic, and cleanup uncertainty without changing recovery state. A missing
+PID, recorded exit, or process-group absence alone is not an operator cleanup
+attestation. Use `next_after` to page when present. The explicit
 sandbox check uses disposable bundled canaries. Model refresh explicitly enables
 catalog network access; it does not verify paid access. Recovery requires the
 server to be stopped and independent operator inspection of uncertain work and
-descendants. A live recorded PID prevents attestation. PID reuse conservatively
-blocks attestation; this candidate never signals a PID to solve that ambiguity.
+descendants. Recovery inspects recorded worker, launcher, helper, and process-group
+identities before attestation. A live PID or group prevents attestation, including
+when a birth identity is missing or suggests PID reuse; this candidate never
+signals a process to solve that ambiguity.
 Recovery records `operator_attested`, never `confirmed`, and never replays work.
 Continuation still revalidates the checkpoint, resources and authority.
 

@@ -13,12 +13,20 @@ import { within } from '../helpers/file-operations.js';
 import { verifyQualification } from './qualification.js';
 import { ripgrepSha256, linuxRipgrepSha256 } from './qualification-pins.js';
 import type { FileDiagnostic } from '../helpers/diagnostics.js';
+import { processIdentity } from './process-identity.js';
 
 const quote = (text: string) => "'" + text.replaceAll("'", "'\\''") + "'";
 const here = dirname(fileURLToPath(import.meta.url));
 const outcomeSchema = z.strictObject({ code: z.number().nullable(), stdout: z.string(), stderr: z.string(), policyHash: z.string(),
   defaultWritePaths: z.array(z.string()), wrapper: z.string(), launcherPid: z.number(), cleanup: z.string() });
 type Outcome = z.infer<typeof outcomeSchema>;
+export type ToolLifecycle = (stage: 'launcher_started' | 'helper_launched' | 'result_received', evidence: Record<string, unknown>) => void;
+/** A fork occurred even if durable ownership recording failed immediately afterward. */
+export class SandboxLaunchUncertain extends Error {
+  constructor(readonly cause: unknown) { super('Sandbox launcher ownership or result is uncertain'); }
+}
+const launchedMessage = z.strictObject({ kind: z.literal('launched'), identity: z.strictObject({ pid: z.number().int().positive(), birth: z.string().nullable(), group: z.number().int().positive().nullable() }),
+  observedAt: z.number(), policyHash: z.string() });
 export class Sandbox {
   private readonly active = new Map<string, Set<ChildProcess>>();
   private readonly cancelled = new Set<string>();
@@ -30,7 +38,7 @@ export class Sandbox {
     if ((await lstat(root)).isSymbolicLink()) fail('UNSAFE_PATH');
     const scratch = await mkdtemp(join(root, 'run-')); await mkdir(join(scratch, 'home'), { mode: 0o700 }); return scratch;
   }
-  private async invoke(runId: string, policy: ResolvedPolicy, scratch: string, command: string, stdin: string, writer: boolean, timeout_ms = 15000): Promise<Outcome> {
+  private async invoke(runId: string, policy: ResolvedPolicy, scratch: string, command: string, stdin: string, writer: boolean, timeout_ms = 15000, lifecycle?: ToolLifecycle): Promise<Outcome> {
     if (this.cancelled.has(runId)) fail('RUN_NOT_ACTIVE');
     if (!['darwin', 'linux'].includes(platform())) fail('SANDBOX_UNAVAILABLE', 'No qualified adapter for this platform');
     await verifyQualification(this.runtimeRoot).catch(error => { if (error instanceof SpokeError) throw error; fail('SANDBOX_UNAVAILABLE', 'Compatibility identity cannot be verified'); });
@@ -52,20 +60,46 @@ export class Sandbox {
     const child = fork(join(this.runtimeRoot, 'dist/sandbox/p0-launcher.js'), [], { cwd: policy.cwd, execPath: process.execPath,
       env: { PATH: '/usr/bin:/bin:/usr/sbin:/sbin', HOME: join(scratch, 'home'), TMPDIR: scratch, CLAUDE_CODE_TMPDIR: scratch, LANG: 'C.UTF-8' },
       stdio: ['pipe','pipe','pipe','ipc'], detached: true, serialization: 'json' });
+    const launcherCreated = child.pid !== undefined;
     const active = this.active.get(runId) ?? new Set(); active.add(child); this.active.set(runId, active);
+    child.once('close', () => { active.delete(child); if (!active.size) this.active.delete(runId); });
     let stdout = '', stderr = '', overflow = false;
-    child.stdout!.on('data', bytes => { stdout += bytes; if (Buffer.byteLength(stdout) > 1024 * 1024) { overflow = true; child.kill('SIGTERM'); } });
-    child.stderr!.on('data', bytes => { stderr += bytes; if (Buffer.byteLength(stderr) > 65536) { overflow = true; child.kill('SIGTERM'); } });
-    child.stdin!.on('error', () => {}); child.stdin!.end(JSON.stringify(payload));
-    const timer = setTimeout(() => child.kill('SIGTERM'), this.config.limits.max_sandbox_startup_seconds * 1000);
-    child.on('message', value => { if (value && typeof value === 'object' && 'kind' in value && value.kind === 'launched') clearTimeout(timer); });
+    child.stdout!.on('data', bytes => { stdout += bytes; if (Buffer.byteLength(stdout) > 1024 * 1024) { overflow = true; if (child.pid) child.kill('SIGTERM'); } });
+    child.stderr!.on('data', bytes => { stderr += bytes; if (Buffer.byteLength(stderr) > 65536) { overflow = true; if (child.pid) child.kill('SIGTERM'); } });
+    child.stdin!.on('error', () => {});
+    const timer = setTimeout(() => { if (child.pid && child.exitCode === null && child.signalCode === null) child.kill('SIGTERM'); }, this.config.limits.max_sandbox_startup_seconds * 1000);
+    const closed = new Promise<number | null>((done, reject) => { child.once('error', reject); child.once('close', done); });
+    void closed.catch(() => {});
+    let lifecycleFailure: unknown;
+    child.on('message', value => {
+      const parsed = launchedMessage.safeParse(value);
+      if (!parsed.success) return;
+      try { lifecycle?.('helper_launched', { helper: parsed.data.identity, observed_at: parsed.data.observedAt, sandbox_policy_hash: parsed.data.policyHash }); }
+      catch (error) { lifecycleFailure = error; if (child.pid) child.kill('SIGTERM'); }
+      clearTimeout(timer);
+    });
     try {
-      const code = await new Promise<number | null>((done, reject) => { child.once('error', reject); child.once('close', done); });
+      // The launcher cannot read its policy until this ownership record is durable.
+      if (!child.pid) fail('SANDBOX_SETUP_FAILED', 'Sandbox launcher process identity is unavailable');
+      lifecycle?.('launcher_started', { launcher: { pid: child.pid, birth: null, group: child.pid }, observed_at: Date.now() });
+      lifecycle?.('launcher_started', { launcher: await processIdentity(child.pid), observed_at: Date.now() });
+      if (this.cancelled.has(runId)) fail('RUN_NOT_ACTIVE');
+      child.stdin!.end(JSON.stringify(payload));
+      const code = await closed;
+      if (lifecycleFailure) throw lifecycleFailure;
       if (overflow) fail('LIMIT_EXCEEDED', 'Tool output exceeded the bounded invocation envelope');
       let value; try { value = JSON.parse(stdout); } catch { fail('SANDBOX_SETUP_FAILED', 'Sandbox launcher did not return a valid result'); }
-      if (code !== 0 || value.error) fail('SANDBOX_SETUP_FAILED', 'Sandbox initialization or execution infrastructure failed');
-      return outcomeSchema.parse(value);
-    } finally { clearTimeout(timer); active.delete(child); if (!active.size) this.active.delete(runId); }
+      if (code !== 0 || value.error) {
+        lifecycle?.('result_received', { launcher_exit_code: code, helper_outcome: 'unknown', stage: 'sandbox_setup_failed' });
+        fail('SANDBOX_SETUP_FAILED', 'Sandbox initialization or execution infrastructure failed');
+      }
+      const outcome = outcomeSchema.parse(value);
+      lifecycle?.('result_received', { exit_code: outcome.code, cleanup_evidence: outcome.cleanup });
+      return outcome;
+    } catch (error) {
+      if (!launcherCreated) throw error;
+      throw new SandboxLaunchUncertain(error);
+    } finally { clearTimeout(timer); if (child.pid && child.exitCode === null && child.signalCode === null) child.kill('SIGTERM'); }
   }
   async preflight(runId: string, policy: ResolvedPolicy, scratch: string) {
     if (!['darwin', 'linux'].includes(platform())) fail('SANDBOX_UNAVAILABLE', 'No qualified adapter for this platform');
@@ -84,13 +118,13 @@ export class Sandbox {
     return { name: 'srt', version: '0.0.76', platform: platform(), architecture: arch(), os: release(), enforcement: platform() === 'linux' ? 'bubblewrap' : 'seatbelt',
       binary, binary_sha256: sha256, preflight_id: createHash('sha256').update(runId + sha256 + policy.policy_hash).digest('hex') };
   }
-  async tool(runId: string, policy: ResolvedPolicy, scratch: string, name: string, args: unknown) {
+  async tool(runId: string, policy: ResolvedPolicy, scratch: string, name: string, args: unknown, lifecycle?: ToolLifecycle) {
     if (!policy.tools.includes(name as typeof policy.tools[number])) fail('TOOL_NOT_ALLOWED');
     if (name === 'bash') {
       const parsed = z.strictObject({ command: z.string().min(1).max(65536), timeout: z.number().positive().optional() }).parse(args);
       const timeout = parsed.timeout ?? this.config.limits.max_shell_command_seconds;
       if (timeout > this.config.limits.max_shell_command_seconds) fail('LIMIT_EXCEEDED');
-      const result = await this.invoke(runId, policy, scratch, parsed.command, '', false, Math.ceil(timeout * 1000));
+      const result = await this.invoke(runId, policy, scratch, parsed.command, '', false, Math.ceil(timeout * 1000), lifecycle);
       return { result: { content: [{ type: 'text', text: result.stdout + result.stderr + (result.code ? `\nCommand exited with code ${result.code}` : '') }],
         details: { exit_code: result.code, policy_hash: result.policyHash } }, cleanup: 'unconfirmed' as const, evidence: result };
     }
@@ -105,21 +139,21 @@ export class Sandbox {
       if (createHash('sha256').update(await readFile(rg)).digest('hex') !== (platform() === 'linux' ? linuxRipgrepSha256 : ripgrepSha256)) fail('SANDBOX_UNAVAILABLE', 'Ripgrep compatibility identity changed; requalification is required');
     }
     const payload = { ...input, operation, authority, ...(rg ? { rg } : {}) };
-    const result = await this.invoke(runId, policy, scratch, `${quote(process.execPath)} ${quote(join(this.runtimeRoot, 'dist/helpers/file-tool-entry.js'))}`, JSON.stringify(payload), name === 'edit' || name === 'write');
+    const result = await this.invoke(runId, policy, scratch, `${quote(process.execPath)} ${quote(join(this.runtimeRoot, 'dist/helpers/file-tool-entry.js'))}`, JSON.stringify(payload), name === 'edit' || name === 'write', 15000, lifecycle);
     let response; try { response = JSON.parse(result.stdout); } catch { fail('SANDBOX_SETUP_FAILED', 'File helper result is invalid'); }
     if (response.error) {
       const diagnostic = z.strictObject({ category: z.string().max(64), detail: z.string().max(512), truncated: z.boolean() }).parse(response.diagnostic) as FileDiagnostic;
-      return { result: { content: [{ type: 'text', text: diagnostic.detail }], details: { error: true }, isError: true }, cleanup: 'confirmed' as const, evidence: result, diagnostic };
+      return { result: { content: [{ type: 'text', text: diagnostic.detail }], details: { error: true }, isError: true }, cleanup: result.cleanup === 'group-absent' ? 'confirmed' as const : 'unconfirmed' as const, evidence: result, diagnostic };
     }
-    return { result: response.content ? response : { content: [{ type: 'text', text: response.text ?? 'File written.' }], details: {} }, cleanup: 'confirmed' as const, evidence: result };
+    return { result: response.content ? response : { content: [{ type: 'text', text: response.text ?? 'File written.' }], details: {} }, cleanup: result.cleanup === 'group-absent' ? 'confirmed' as const : 'unconfirmed' as const, evidence: result };
   }
   async cancel(runId: string): Promise<'confirmed' | 'unconfirmed'> {
     this.cancelled.add(runId);
     const active = this.active.get(runId); if (!active?.size) return 'confirmed';
     await Promise.all([...active].map(async child => {
-      if (child.exitCode !== null || child.signalCode !== null) return;
+      if (!child.pid || child.exitCode !== null || child.signalCode !== null) return;
       child.kill('SIGTERM');
-      await new Promise<void>(done => { const timer = setTimeout(() => { child.kill('SIGKILL'); done(); }, 2000);
+      await new Promise<void>(done => { const timer = setTimeout(() => { if (child.pid && child.exitCode === null && child.signalCode === null) child.kill('SIGKILL'); done(); }, 2000);
         child.once('close', () => { clearTimeout(timer); done(); }); });
     }));
     return 'unconfirmed';

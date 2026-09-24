@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 import { spawn } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { z } from 'zod';
+import { processIdentity } from './process-identity.js';
 
 const input = z.strictObject({
   cwd: z.string(), scratch: z.string(), command: z.string().max(65536),
@@ -47,21 +48,29 @@ try {
     env: { PATH: '/usr/bin:/bin:/usr/sbin:/sbin', HOME: process.env.HOME, TMPDIR: probe.scratch,
       CLAUDE_CODE_TMPDIR: probe.scratch, LANG: 'C.UTF-8' }, stdio: ['pipe', 'pipe', 'pipe'],
   });
-  process.send?.({ kind: 'launched', pid: child.pid, startedAt: Date.now(), policyHash });
   const stop = () => { if (child.exitCode === null && child.signalCode === null && child.pid) {
     try { process.kill(-child.pid, 'SIGKILL'); } catch (error) { if ((error as NodeJS.ErrnoException).code !== 'ESRCH') throw error; }
   } };
   process.once('disconnect', stop); process.once('SIGTERM', stop);
-  child.stdin.end(probe.stdin ?? '');
   let stdout = '', stderr = '';
+  child.stdin.on('error', () => {}); // A short-lived helper may close stdin before identity enrichment.
   child.stdout.on('data', b => { stdout += b; if (Buffer.byteLength(stdout) > 65536) { stdout = Buffer.from(stdout).subarray(0, 65536).toString(); stop(); } });
   child.stderr.on('data', b => { stderr += b; if (Buffer.byteLength(stderr) > 65536) { stderr = Buffer.from(stderr).subarray(0, 65536).toString(); stop(); } });
   const timer = setTimeout(stop, probe.timeout_ms);
-  const code = await new Promise<number | null>((resolve, reject) => { child.once('error', reject); child.once('close', resolve); });
+  const closed = new Promise<number | null>((resolve, reject) => { child.once('error', reject); child.once('close', resolve); });
+  void closed.catch(() => {});
+  if (child.pid) {
+    process.send?.({ kind: 'launched', identity: { pid: child.pid, birth: null, group: child.pid }, observedAt: Date.now(), policyHash });
+    process.send?.({ kind: 'launched', identity: await processIdentity(child.pid), observedAt: Date.now(), policyHash });
+  }
+  child.stdin.end(probe.stdin ?? '');
+  const code = await closed;
   clearTimeout(timer);
   process.removeListener('disconnect', stop); process.removeListener('SIGTERM', stop);
+  let groupAbsent = false;
+  if (child.pid) try { process.kill(-child.pid, 0); } catch (error) { groupAbsent = (error as NodeJS.ErrnoException).code === 'ESRCH'; }
   console.log(JSON.stringify({ code, stdout, stderr, policyHash, defaultWritePaths: getDefaultWritePaths(),
-    wrapper: wrapped.argv[0], launcherPid: process.pid, cleanup: 'wrapper-exited-descendants-unverified' }));
+    wrapper: wrapped.argv[0], launcherPid: process.pid, cleanup: groupAbsent ? 'group-absent' : 'unconfirmed' }));
 } catch (error) {
   console.log(JSON.stringify({ error: String(error), policyHash }));
   process.exitCode = 1;

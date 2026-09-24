@@ -20,6 +20,16 @@ const inbound = z.discriminatedUnion('kind', [
   z.strictObject({ version: z.literal(1), kind: z.literal('heartbeat'), runId: z.string() }),
 ]);
 let runId = '', session: AgentSession | undefined, initialized = false, begun = false, stopped = false, lastHeartbeat = Date.now();
+let failureStage: 'setup' | 'provider' | 'finalization' | 'worker' = 'setup';
+let providerDiagnostic: string | null = null;
+function reportedHttpFailure(message: string | undefined): string | null {
+  // Pi's public errorMessage can contain a raw gateway body and appended metadata.
+  // Only read an HTTP status in the leading SDK error prefix; publish no body text.
+  const match = /^(?:HTTP\s+([45]\d{2})\b|([45]\d{2}):(?:\s|$)|([45]\d{2})\s+status code\b)/i.exec(message?.trimStart() ?? '');
+  if (!match) return null;
+  const status = match[1] ?? match[2] ?? match[3];
+  return status === '503' ? 'Provider HTTP 503 (service unavailable).' : `Provider HTTP ${status}.`;
+}
 let savedSession: Session, run: Run, config: OperatorConfig;
 let outputPath = '';
 let recoveryNotice = '';
@@ -38,8 +48,11 @@ async function stop() {
 const watchdog = setInterval(() => { if (Date.now() - lastHeartbeat > 15000) void stop(); }, 1000); watchdog.unref();
 process.once('disconnect', () => { void stop(); }); process.once('SIGTERM', () => { void stop(); });
 process.on('message', value => { void handle(value).catch(async error => {
-  send({ kind: 'error', code: error instanceof Error && /^[A-Z_]+$/.test(error.message) ? error.message : 'WORKER_EXITED',
-    message: error instanceof Error ? error.message.slice(0, 4096) : 'Worker failed' }); await stop();
+  const code = error instanceof Error && /^[A-Z_]+$/.test(error.message) ? error.message : failureStage === 'provider' ? 'PROVIDER_ERROR' : 'WORKER_EXITED';
+  const diagnostic = failureStage === 'provider' && code === 'PROVIDER_ERROR' ? providerDiagnostic : null;
+  send({ kind: 'error', stage: failureStage, code,
+    message: diagnostic ?? (failureStage === 'provider' && code === 'PROVIDER_ERROR' ? 'Provider reported an error.' :
+      error instanceof Error ? error.message.slice(0, 4096) : 'Worker failed') }); await stop();
 }); });
 async function handle(value: unknown) {
   if (Buffer.byteLength(JSON.stringify(value)) > 1024 * 1024) throw new Error('LIMIT_EXCEEDED');
@@ -75,6 +88,10 @@ async function handle(value: unknown) {
       if (event.type === 'turn_start' && ++turns > savedSession.policy.limits.max_turns) {
         send({ kind: 'event', event: 'limit_reached', payload: { reason: 'MAX_TURNS' } }); void stop();
       }
+      if (event.type === 'message_end' && event.message.role === 'assistant') {
+        providerDiagnostic = event.message.stopReason === 'error' ? reportedHttpFailure(event.message.errorMessage) : null;
+        send({ kind: 'event', event: 'provider_stopped', payload: { reason: event.message.stopReason } });
+      }
       if (['compaction_start','compaction_end','agent_settled'].includes(event.type)) send({ kind: 'event', event: event.type, payload: {} });
     });
     send({ kind: 'ready', piSession: { id: manager.getSessionId(), path: manager.getSessionFile()! }, effective: { ...(message.manifest as object), ...identity } });
@@ -97,12 +114,15 @@ async function handle(value: unknown) {
       return { type: 'image' as const, data: bytes.toString('base64'), mimeType: image.mimeType };
     }));
     const beforeMessages = session!.messages.length;
+    failureStage = 'provider';
     await session!.prompt(recoveryNotice + prompt, { expandPromptTemplates: false, images });
     if (stopped) return;
     if (!session!.isIdle) throw new Error('WORKER_NOT_SETTLED');
     const last = session!.messages.findLast(message => message.role === 'assistant');
     if (!last || last.role !== 'assistant' || last.stopReason === 'error' || last.stopReason === 'aborted') throw new Error('PROVIDER_ERROR');
     const output = last.content.filter(part => part.type === 'text').map(part => part.text).join('\n');
+    send({ kind: 'event', event: 'final_text', payload: { empty: output.length === 0 } });
+    failureStage = 'finalization';
     const file = await open(outputPath, 'wx', 0o600); try { await file.writeFile(output); await file.sync(); } finally { await file.close(); }
     const saved = await checkpoint(session!.sessionManager);
     const turns = session!.messages.slice(beforeMessages).filter(message => message.role === 'assistant');

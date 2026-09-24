@@ -89,7 +89,9 @@ test('A11/A12/A23: correlated committed replies, duplicate questions and uncerta
     const receipt = await f.service.spawn(f.request); await started(f.store, receipt.run_id);
     const question = f.service.question(receipt.run_id, 'tool-one', 'context?');
     expect(f.service.question(receipt.run_id, 'tool-one', 'context?')).toEqual(question);
-    await expect(f.service.send({ kind: 'steer', request_key: 'steer', run_id: receipt.run_id, message: 'answer' })).rejects.toMatchObject({ code: 'QUESTION_REPLY_REQUIRED' });
+    await expect(f.service.send({ kind: 'steer', request_key: 'steer', run_id: receipt.run_id, message: 'answer' })).rejects.toMatchObject({
+      code: 'QUESTION_REPLY_REQUIRED', message: expect.stringContaining('answer the open correlated question with reply'),
+    });
     expect(f.store.getCommand('steer')).toBeUndefined();
     f.runtime.failSend = true;
     const reply = { kind: 'reply', request_key: 'reply', run_id: receipt.run_id, question_id: question.id, message: 'answer' };
@@ -182,6 +184,50 @@ test('S30: revoked policy blocks continuation; replies cannot provide new permis
     await expect(f.service.send({ kind: 'continue', request_key: 'revoked', session_id: receipt.session_id, expected_last_run_id: receipt.run_id, message: 'next' })).rejects.toMatchObject({ code: 'POLICY_CHANGED' });
     expect(f.store.getCommand('revoked')).toBeUndefined(); expect(f.runtime.launches).toBe(1);
     await expect(f.service.send({ kind: 'reply', request_key: 'escalate', run_id: receipt.run_id, question_id: 'unknown', message: 'approve', permissions: { shell_write_roots: [f.request.cwd] } })).rejects.toMatchObject({ code: 'INVALID_ARGUMENT' });
+  } finally { await f.dispose(); }
+});
+
+test('stale steering and continuation explain known state without dispatch or replay', async () => {
+  const f = await fixture();
+  try {
+    const receipt = await f.service.spawn(f.request); await started(f.store, receipt.run_id);
+    f.store.putInvocation({ id: 'partial', runId: receipt.run_id, toolCallId: 'write', kind: 'write', policyHash: 'hash',
+      state: 'completed', evidence: { partial_effect: 'retained' }, cleanup: 'confirmed' });
+    f.runtime.finish(receipt.run_id); await f.service.drain(); // completion wins the steer race
+    await expect(f.service.send({ kind: 'steer', request_key: 'late', run_id: receipt.run_id, message: 'do more' })).rejects.toMatchObject({
+      code: 'RUN_NOT_ACTIVE', message: expect.stringContaining(`run ${receipt.run_id} in session ${receipt.session_id} is completed`),
+    });
+    expect(f.store.getCommand('late')).toBeUndefined(); expect(f.runtime.sends).toBe(0);
+    const next = await f.service.send({ kind: 'continue', request_key: 'next-run', session_id: receipt.session_id,
+      expected_last_run_id: receipt.run_id, message: 'deliberate next step' });
+    await started(f.store, next.run_id); f.runtime.finish(next.run_id); await f.service.drain();
+    await expect(f.service.send({ kind: 'continue', request_key: 'stale', session_id: receipt.session_id,
+      expected_last_run_id: receipt.run_id, message: 'stale step' })).rejects.toMatchObject({
+      code: 'SESSION_STALE', message: expect.stringContaining(`latest run is ${next.run_id}`),
+    });
+    expect(f.store.getCommand('stale')).toBeUndefined(); expect(f.runtime.launches).toBe(2);
+    expect(f.store.invocations(receipt.run_id)[0]?.evidence).toEqual({ partial_effect: 'retained' });
+  } finally { await f.dispose(); }
+});
+
+test('cancelled run with no safe checkpoint and reduced operator authority reject continuation with actionable state', async () => {
+  const f = await fixture();
+  try {
+    const cancelled = await f.service.spawn(f.request); await started(f.store, cancelled.run_id);
+    await f.service.cancel(cancelled.run_id);
+    await expect(f.service.send({ kind: 'continue', request_key: 'unsafe', session_id: cancelled.session_id,
+      expected_last_run_id: cancelled.run_id, message: 'try again' })).rejects.toMatchObject({
+      code: 'SESSION_NOT_RESUMABLE', message: expect.stringContaining('safe checkpoint unavailable'),
+    });
+    expect(f.store.getCommand('unsafe')).toBeUndefined();
+    const completed = await f.service.spawn({ ...f.request, request_key: 'completed' }); await started(f.store, completed.run_id);
+    f.runtime.finish(completed.run_id); await f.service.drain();
+    f.config.allowed_models = [];
+    await expect(f.service.send({ kind: 'continue', request_key: 'reduced', session_id: completed.session_id,
+      expected_last_run_id: completed.run_id, message: 'try again' })).rejects.toMatchObject({
+      code: 'POLICY_CHANGED', message: expect.stringContaining('MODEL_NOT_ALLOWED'),
+    });
+    expect(f.store.runs()).toHaveLength(2); expect(f.store.getCommand('reduced')).toBeUndefined(); expect(f.runtime.launches).toBe(2);
   } finally { await f.dispose(); }
 });
 

@@ -85,13 +85,16 @@ async function handle(value: unknown) {
     const identity = confirmIdentity(session, savedSession.input.model, savedSession.input.thinking);
     let turns = 0;
     session.subscribe(event => {
-      if (event.type === 'turn_start' && ++turns > savedSession.policy.limits.max_turns) {
-        send({ kind: 'event', event: 'limit_reached', payload: { reason: 'MAX_TURNS' } }); void stop();
+      if (event.type === 'turn_start') {
+        if (++turns > savedSession.policy.limits.max_turns) {
+          send({ kind: 'event', event: 'limit_reached', payload: { reason: 'MAX_TURNS' } }); void stop();
+        } else send({ kind: 'event', event: 'turn_started', payload: { turns_used: turns } });
       }
       if (event.type === 'message_end' && event.message.role === 'assistant') {
         providerDiagnostic = event.message.stopReason === 'error' ? reportedHttpFailure(event.message.errorMessage) : null;
         send({ kind: 'event', event: 'provider_stopped', payload: { reason: event.message.stopReason } });
       }
+      if (event.type === 'turn_end') send({ kind: 'event', event: 'turn_ended', payload: {} });
       if (['compaction_start','compaction_end','agent_settled'].includes(event.type)) send({ kind: 'event', event: event.type, payload: {} });
     });
     send({ kind: 'ready', piSession: { id: manager.getSessionId(), path: manager.getSessionFile()! }, effective: { ...(message.manifest as object), ...identity } });

@@ -10,6 +10,8 @@ export type Session = { id: string; input: SpawnInput; policy: ResolvedPolicy; c
   lastRunId: string; checkpoint: Checkpoint | null; piSession: { id: string; path: string } | null };
 export type Run = { id: string; sessionId: string; state: RunState; input: SpawnInput | SendInput; created: number; updated: number;
   effective: unknown | null; reason: string | null; cleanup: CleanupStatus; outputPath: string | null; metrics?: RunMetrics;
+  appliedLimits?: { wall_time_ms: number; max_turns: number }; deadlineAt?: number; settledAt?: number; turnsUsed?: number;
+  activity?: { category: 'generation' | 'helper' | 'waiting_for_reply' | 'unknown'; since: number };
   terminal?: { failure_stage: 'setup' | 'provider' | 'worker' | 'finalization' | 'cleanup' | null;
     error_category: string | null; diagnostic: string | null; diagnostic_truncated: boolean; worker_exit_code: number | null; worker_exit_signal: string | null;
     provider_stop_reason: string | null; final_text_empty: boolean | null } };

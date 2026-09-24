@@ -1,6 +1,6 @@
 import { createServer } from 'node:http';
 export type FakeRequest = { messages: { role: string; content?: unknown; tool_calls?: unknown[] }[]; model: string };
-export async function httpProvider(reply: (request: FakeRequest, index: number) => { text?: string; tool?: { name: string; arguments: object }; delay?: number; finishReason?: 'stop' | 'length'; status?: number; errorBody?: string }) {
+export async function httpProvider(reply: (request: FakeRequest, index: number) => { text?: string; tool?: { name: string; arguments: object }; tools?: { name: string; arguments: object }[]; delay?: number; finishReason?: 'stop' | 'length'; status?: number; errorBody?: string }) {
   const requests: FakeRequest[] = [];
   const server = createServer(async (req, res) => {
     let body = ''; for await (const bytes of req) body += bytes;
@@ -12,10 +12,11 @@ export async function httpProvider(reply: (request: FakeRequest, index: number) 
     const chunk = (delta: unknown, finish_reason: string | null = null) => res.write(`data: ${JSON.stringify({ id: 'fixture-' + requests.length,
       object: 'chat.completion.chunk', created: 1, model: request.model, choices: [{ index: 0, delta, finish_reason }] })}\n\n`);
     chunk({ role: 'assistant' });
-    if (response.tool) chunk({ tool_calls: [{ index: 0, id: 'call-' + requests.length, type: 'function',
-      function: { name: response.tool.name, arguments: JSON.stringify(response.tool.arguments) } }] });
+    const tools = response.tools ?? (response.tool ? [response.tool] : []);
+    if (tools.length) chunk({ tool_calls: tools.map((tool, index) => ({ index, id: `call-${requests.length}-${index}`, type: 'function',
+      function: { name: tool.name, arguments: JSON.stringify(tool.arguments) } })) });
     else chunk({ content: response.text ?? 'done' });
-    chunk({}, response.tool ? 'tool_calls' : response.finishReason ?? 'stop'); res.end('data: [DONE]\n\n');
+    chunk({}, tools.length ? 'tool_calls' : response.finishReason ?? 'stop'); res.end('data: [DONE]\n\n');
   });
   await new Promise<void>((resolve, reject) => { server.once('error', reject); server.listen(0, '127.0.0.1', resolve); });
   const address = server.address(); if (!address || typeof address === 'string') throw Error('No fake listener');

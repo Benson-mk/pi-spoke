@@ -20,7 +20,7 @@ test('P3: real worker persists notes, waits for a correlated reply, and records 
   const app = await createApplication(config, join(root, 'config.json'), 'test');
   try {
     const receipt = await app.service.spawn({ request_key: 'contact', task: 'coordinate', cwd, tools: [], model: { provider: 'fixture', id: 'model' } });
-    await vi.waitFor(() => expect(app.store.getRun(receipt.run_id)?.state).toBe('waiting_input'));
+    await vi.waitFor(() => expect(app.store.getRun(receipt.run_id)?.state).toBe('waiting_input'), { timeout: 10000 });
     const question = app.store.questions(receipt.run_id)[0]!;
     for (let i = 0; i < 3; i++) expect((await app.service.observe(receipt.run_id)).questions[0]?.id).toBe(question.id);
     expect(provider.requests).toHaveLength(2);

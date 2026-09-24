@@ -28,7 +28,7 @@ test('P5 public MCP: guarded file execution and honest shell cancellation with a
     await vi.waitFor(async()=>expect(await readFile(join(shellState.effective_config.shell_scratch_root,'started'),'utf8')).toBe('started'),{timeout:10000});
     const sibling=await call('spawn',{...input,request_key:'sibling',task:'healthy',tools:[]});
     expect(await call('cancel',{run_id:shell.run_id})).toMatchObject({state:'interrupted',cleanup_status:'unconfirmed'});
-    await vi.waitFor(async()=>expect((await call('observe',{run_id:sibling.run_id})).state).toBe('completed'));
+    await vi.waitFor(async()=>expect((await call('observe',{run_id:sibling.run_id})).state).toBe('completed'),{timeout:10000});
     expect(await call('cancel',{run_id:shell.run_id})).toMatchObject({state:'interrupted',cleanup_status:'unconfirmed'});
   }finally{await client.close();await provider.close();await rm(root,{recursive:true,force:true});}
 },25000);

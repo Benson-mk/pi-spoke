@@ -8,7 +8,7 @@ import type { Session, Run, Receipt, Command, Checkpoint, CleanupStatus, RunStat
 import { terminalStates } from './types.js';
 import { assertTransition } from './state-machine.js';
 import { digest } from './idempotency.js';
-import { fail, SpokeError } from './errors.js';
+import { fail, invalidInput, SpokeError } from './errors.js';
 
 export interface Runtime {
   setup(session: Session, run: Run): Promise<{ piSession: { id: string; path: string }; effective: unknown }>;
@@ -46,7 +46,7 @@ export class Service {
   async spawn(raw: unknown): Promise<Receipt> {
     if (this.shuttingDown) fail('RUN_NOT_ACTIVE', 'Supervisor is shutting down');
     if (this.durabilityError) fail('STATE_WRITE_FAILED');
-    const parsed = spawnSchema.safeParse(raw); if (!parsed.success) fail('INVALID_ARGUMENT'); const input = parsed.data;
+    const parsed = spawnSchema.safeParse(raw); if (!parsed.success) invalidInput(parsed.error.issues); const input = parsed.data;
     const previous = this.prior(input.request_key, 'spawn', input); if (previous) return previous;
     const policy = await this.prepare(input);
     const receipt = this.store.transaction(() => {
@@ -119,7 +119,7 @@ export class Service {
   async send(raw: unknown): Promise<Receipt> {
     if (this.shuttingDown) fail('RUN_NOT_ACTIVE', 'Supervisor is shutting down');
     if (this.durabilityError) fail('STATE_WRITE_FAILED');
-    const parsed = sendSchema.safeParse(raw); if (!parsed.success) fail('INVALID_ARGUMENT'); const input = parsed.data;
+    const parsed = sendSchema.safeParse(raw); if (!parsed.success) invalidInput(parsed.error.issues); const input = parsed.data;
     const previous = this.prior(input.request_key, input.kind, input); if (previous) return previous;
     if (input.kind === 'continue') {
       const session = this.session(input.session_id), last = this.run(session.lastRunId);

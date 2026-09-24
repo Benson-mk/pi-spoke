@@ -14,7 +14,7 @@ import { selectSkills } from './skills.js';
 
 export async function admitResources(config: OperatorConfig, input: SpawnInput, policy: ResolvedPolicy, runtime: ModelRuntime): Promise<ResourceManifest> {
   const model = requireModel(runtime, input.model);
-  if (input.attachments.length && !model.input.includes('image')) fail('UNSUPPORTED_INPUT');
+  if (input.attachments.length && !model.input.includes('image')) fail('UNSUPPORTED_INPUT', 'attachments: selected model does not support image input');
   const context: ResourceManifest['context'] = [], images: ImageResource[] = [];
   const authority = { cwd: policy.cwd, roots: [policy.workspace, ...config.skill_roots.map(root => root.path)], protectedPaths: policy.protected_read_paths };
   const candidates: string[] = [];
@@ -27,17 +27,26 @@ export async function admitResources(config: OperatorConfig, input: SpawnInput, 
   let bytes = 0;
   for (const candidate of [...new Set(candidates)]) {
     const path = await checkedTarget(authority, candidate, false), stat = await lstat(path);
-    if (!stat.isFile() || stat.size > 65536) fail('LIMIT_EXCEEDED');
-    const data = await readFile(path); bytes += data.length; if (bytes > 65536) fail('LIMIT_EXCEEDED');
+    if (!stat.isFile()) fail('UNSUPPORTED_INPUT', 'context_files: expected a regular file');
+    if (stat.size > 65536) fail('LIMIT_EXCEEDED', `Single context file measured ${stat.size} bytes; allowed 65536 bytes`);
+    const data = await readFile(path);
+    if (data.length > 65536) fail('LIMIT_EXCEEDED', `Single context file measured ${data.length} bytes; allowed 65536 bytes`);
+    bytes += data.length;
+    if (bytes > 65536) fail('LIMIT_EXCEEDED', `Aggregate context measured ${bytes} bytes; allowed 65536 bytes`);
     context.push({ path, hash: createHash('sha256').update(data).digest('hex'), content: data.toString('utf8') });
   }
   for (const attachment of input.attachments) {
     const source = await checkedTarget(authority, attachment.path, false);
     const file = await open(source, constants.O_RDONLY | constants.O_NOFOLLOW);
     let data: Buffer;
-    try { const stat = await file.stat(); if (!stat.isFile() || stat.size > 10 * 1024 * 1024) fail('UNSUPPORTED_INPUT'); data = await file.readFile(); }
+    try {
+      const stat = await file.stat();
+      if (!stat.isFile()) fail('UNSUPPORTED_INPUT', 'attachments: expected a regular image file');
+      if (stat.size > 10 * 1024 * 1024) fail('UNSUPPORTED_INPUT', `Image measured ${stat.size} bytes; allowed ${10 * 1024 * 1024} bytes`);
+      data = await file.readFile();
+    }
     finally { await file.close(); }
-    if (data.length > 10 * 1024 * 1024) fail('UNSUPPORTED_INPUT');
+    if (data.length > 10 * 1024 * 1024) fail('UNSUPPORTED_INPUT', `Image measured ${data.length} bytes; allowed ${10 * 1024 * 1024} bytes`);
     let mimeType: ImageResource['mimeType'];
     if (data.subarray(0, 8).equals(Buffer.from([137,80,78,71,13,10,26,10]))) mimeType = 'image/png';
     else if (data[0] === 255 && data[1] === 216 && data[2] === 255) mimeType = 'image/jpeg';

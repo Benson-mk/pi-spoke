@@ -6,7 +6,7 @@ import { skillCatalog } from './pi/skills.js';
 import { within } from './helpers/file-operations.js';
 import { digest } from './core/idempotency.js';
 import { terminalStates, type Run } from './core/types.js';
-import { fail } from './core/errors.js';
+import { fail, invalidInput } from './core/errors.js';
 import { redact } from './security/redaction.js';
 
 type Application = Awaited<ReturnType<typeof createApplication>>;
@@ -54,7 +54,7 @@ export class Api {
     if (!workspace) fail('PATH_NOT_ALLOWED'); return { cwd: path, workspace };
   }
   async catalog(raw: unknown) {
-    const parsed = catalogSchema.safeParse(raw); if (!parsed.success) fail('INVALID_ARGUMENT'); const input = parsed.data;
+    const parsed = catalogSchema.safeParse(raw); if (!parsed.success) invalidInput(parsed.error.issues); const input = parsed.data;
     const scope = input.cwd ? await this.workspace(input.cwd) : null;
     let items: unknown[];
     if (input.kind === 'models') {
@@ -88,10 +88,13 @@ export class Api {
     if (input.query) { const query = input.query.toLowerCase(); items = items.filter(item => {
       const value = item as { name?: string; description?: string | null; id?: string; provider?: string }; return [value.name,value.description,value.id,value.provider].some(field => field?.toLowerCase().includes(query));
     }); }
-    return { ...page(items, input.cursor, input.limit, { kind: input.kind, cwd: scope?.cwd, query: input.query }), instance_id: this.app.instanceId };
+    return { ...page(items, input.cursor, input.limit, { kind: input.kind, cwd: scope?.cwd, query: input.query }), instance_id: this.app.instanceId,
+      resource_limits: { run: { wall_time_ms: { maximum: this.app.config.limits.max_run_wall_time_ms, unit: 'ms' }, max_turns: { maximum: this.app.config.limits.max_run_turns, unit: 'turns' } },
+        context: { single_file_bytes: { maximum: 65536, unit: 'bytes' }, aggregate_bytes: { maximum: 65536, unit: 'bytes' } },
+        output_page_bytes: { minimum: 1, maximum: 16384, unit: 'bytes' } } };
   }
   async sessions(raw: unknown) {
-    const parsed = sessionsSchema.safeParse(raw); if (!parsed.success) fail('INVALID_ARGUMENT'); const input = parsed.data;
+    const parsed = sessionsSchema.safeParse(raw); if (!parsed.success) invalidInput(parsed.error.issues); const input = parsed.data;
     const cwd = input.cwd ? (await this.workspace(input.cwd)).cwd : undefined;
     const items = this.app.store.sessions().filter(session => !cwd || session.policy.cwd === cwd).map(session => {
       const run = this.app.store.getRun(session.lastRunId)!; const terminal = terminalStates.includes(run.state);
@@ -102,7 +105,8 @@ export class Api {
     return { ...page(items, input.cursor, input.limit, { cwd }), instance_id: this.app.instanceId };
   }
   async observe(raw: unknown) {
-    const parsed = observeSchema.safeParse(raw); if (!parsed.success) fail('INVALID_ARGUMENT'); const input = parsed.data;
+    const parsed = observeSchema.safeParse(raw); if (!parsed.success) invalidInput(parsed.error.issues,
+      raw && typeof raw === 'object' && 'view' in raw && raw.view === 'question' ? 8192 : 16384); const input = parsed.data;
     if (input.view === 'output') return { protocol_version: 1, instance_id: this.app.instanceId, run_id: input.run_id, ...await this.app.service.output(input.run_id, input.offset_bytes, input.max_bytes) };
     const observed = await this.app.service.observe(input.run_id, input.after_seq, input.wait_ms, input.limit);
     const output = await this.app.service.output(input.run_id, 0, 3072);
@@ -122,7 +126,7 @@ export class Api {
       events_truncated: truncated || this.app.store.events(input.run_id, events.length ? (events.at(-1) as { seq: number }).seq : input.after_seq, 1).length > 0,
       output_preview: output.text, output_truncated: output.truncated, next_offset_bytes: output.next_offset_bytes };
   }
-  async cancel(raw: unknown) { const parsed = cancelSchema.safeParse(raw); if (!parsed.success) fail('INVALID_ARGUMENT'); return { protocol_version: 1, instance_id: this.app.instanceId, ...runSummary(await this.app.service.cancel(parsed.data.run_id, parsed.data.reason)) }; }
+  async cancel(raw: unknown) { const parsed = cancelSchema.safeParse(raw); if (!parsed.success) invalidInput(parsed.error.issues); return { protocol_version: 1, instance_id: this.app.instanceId, ...runSummary(await this.app.service.cancel(parsed.data.run_id, parsed.data.reason)) }; }
   spawn(raw: unknown) { return this.app.service.spawn(raw); }
   send(raw: unknown) { return this.app.service.send(raw); }
 }

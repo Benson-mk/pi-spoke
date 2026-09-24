@@ -21,9 +21,9 @@ export async function createApplication(config: OperatorConfig, configPath: stri
     const service = new Service(store, runtime, async input => {
       const policy = await resolvePolicy(config, input, configPath, root);
       return { ...policy, resources: await admitResources(scoped, input, policy, models) };
-    }, config.limits.max_active_runs);
+    }, config.limits.max_active_runs, store.instanceId);
     runtime.attach(service); service.recoverStartup();
-    return { service, runtime, store, models, config: scoped,
+    return { service, runtime, store, models, config: scoped, instanceId: store.instanceId,
       async close() {
         try { await service.shutdown(); } finally { store.close(); }
       } };

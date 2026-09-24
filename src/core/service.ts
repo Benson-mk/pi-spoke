@@ -9,6 +9,7 @@ import { terminalStates } from './types.js';
 import { assertTransition } from './state-machine.js';
 import { digest } from './idempotency.js';
 import { fail, invalidInput, SpokeError } from './errors.js';
+import { redact } from '../security/redaction.js';
 
 export interface Runtime {
   setup(session: Session, run: Run): Promise<{ piSession: { id: string; path: string }; effective: unknown }>;
@@ -42,6 +43,29 @@ export class Service {
     this.run(runId);
     const seq = this.store.transaction(() => this.store.event(runId, type, payload, source));
     this.notify(runId); return seq;
+  }
+  private terminal(run: Run): NonNullable<Run['terminal']> {
+    return run.terminal ?? { failure_stage: null, error_category: null, diagnostic: null, diagnostic_truncated: false,
+      worker_exit_code: null, worker_exit_signal: null, provider_stop_reason: null, final_text_empty: null };
+  }
+  providerStop(runId: string, reason: string) {
+    const run = this.run(runId);
+    this.store.transaction(() => this.store.putRun({ ...run, terminal: { ...this.terminal(run), provider_stop_reason: reason.slice(0, 64) } }));
+  }
+  finalText(runId: string, empty: boolean) {
+    const run = this.run(runId);
+    this.store.transaction(() => this.store.putRun({ ...run, terminal: { ...this.terminal(run), final_text_empty: empty } }));
+  }
+  failure(runId: string, stage: NonNullable<Run['terminal']>['failure_stage'], category: string, diagnostic: string) {
+    const run = this.run(runId);
+    const bytes = Buffer.from(redact(diagnostic)); let end = Math.min(512, bytes.length);
+    while (end < bytes.length && (bytes[end]! & 0xc0) === 0x80) end--;
+    this.store.transaction(() => this.store.putRun({ ...run, terminal: { ...this.terminal(run), failure_stage: stage,
+      error_category: category.slice(0, 64), diagnostic: bytes.subarray(0, end).toString('utf8'), diagnostic_truncated: end < bytes.length } }));
+  }
+  workerExit(runId: string, code: number | null, signal: string | null) {
+    const run = this.run(runId);
+    this.store.transaction(() => this.store.putRun({ ...run, terminal: { ...this.terminal(run), worker_exit_code: code, worker_exit_signal: signal?.slice(0, 32) ?? null } }));
   }
   async spawn(raw: unknown): Promise<Receipt> {
     if (this.shuttingDown) fail('RUN_NOT_ACTIVE', 'Supervisor is shutting down');
@@ -94,6 +118,7 @@ export class Service {
         this.notify(runId);
         const result = await this.runtime.begin(runId);
         if (this.run(runId).state !== 'running') return;
+        this.finalText(runId, result.output.length === 0);
         if (!result.checkpoint.safe) fail('STATE_CORRUPT', 'Unsafe terminal checkpoint');
         let outputPath: string;
         try { outputPath = this.store.writeArtifact(runId, 'output.txt', result.output); }
@@ -101,11 +126,15 @@ export class Service {
         this.store.transaction(() => {
           this.store.putSession({ ...this.session(run.sessionId), checkpoint: result.checkpoint, updated: Date.now() });
           this.transition(this.run(runId), result.cleanup === 'confirmed' ? 'completed' : 'interrupted', { outputPath, cleanup: result.cleanup, ...(result.metrics ? { metrics: result.metrics } : {}),
+            terminal: { ...this.terminal(this.run(runId)), final_text_empty: result.output.length === 0,
+              ...(result.cleanup !== 'confirmed' ? { failure_stage: 'cleanup' as const, error_category: 'CLEANUP_UNCONFIRMED' } : {}) },
             reason: result.cleanup === 'confirmed' ? null : 'CLEANUP_UNCONFIRMED' });
         });
       } catch (error) {
         const current = this.run(runId);
         if (!terminalStates.includes(current.state) && current.state !== 'stopping') {
+          const stage = current.state === 'starting' ? 'setup' : error instanceof SpokeError && error.code === 'STATE_WRITE_FAILED' ? 'finalization' : 'worker';
+          if (!current.terminal?.error_category) this.failure(runId, stage, error instanceof SpokeError ? error.code : 'WORKER_EXITED', error instanceof Error ? error.message : 'Worker failed');
           const cleanup = await this.runtime.cancel(runId).catch(() => 'unconfirmed' as const);
           this.store.transaction(() => this.transition(this.run(runId), cleanup === 'confirmed' ? 'failed' : 'interrupted', {
             cleanup, reason: error instanceof SpokeError ? error.code : 'WORKER_EXITED',
@@ -232,7 +261,17 @@ export class Service {
       const timer = setTimeout(() => { timedOut = true; ready(); }, waitMs);
       this.changes.on(runId, ready); if (available()) ready();
     });
-    return { protocol_version: 1, run: this.run(runId), questions: this.store.questions(runId).filter(q => q.state === 'open'), events: this.store.events(runId, after, limit), timed_out: timedOut,
+    const run = this.run(runId), invocations = this.store.invocations(runId);
+    const outcomes = { successful: 0, failed: 0, unsettled: 0, unknown: 0 };
+    for (const invocation of invocations) {
+      if (invocation.state !== 'completed') { outcomes.unsettled++; continue; }
+      const evidence = invocation.evidence as { exit_code?: number; tool_error?: boolean; stage?: string };
+      if (evidence.tool_error === true || evidence.exit_code !== undefined && evidence.exit_code !== 0 || evidence.stage === 'rejected_before_launch') outcomes.failed++;
+      else if (evidence.tool_error === false && evidence.exit_code === 0) outcomes.successful++;
+      else outcomes.unknown++;
+    }
+    return { protocol_version: 1, run, tool_outcomes: outcomes,
+      questions: this.store.questions(runId).filter(q => q.state === 'open'), events: this.store.events(runId, after, limit), timed_out: timedOut,
       durability_error: this.durabilityError ? 'STATE_WRITE_FAILED' : null };
   }
   async output(runId: string, offset = 0, max = 16384) {

@@ -87,10 +87,11 @@ export class Supervisor implements Runtime {
       entry.ready.reject(error); entry.done.reject(error); void this.cancel(run.id);
     }); });
     child.once('error', error => { entry.ready.reject(error); entry.done.reject(error); });
-    child.once('close', () => { void (async () => {
+    child.once('close', (code, signal) => { void (async () => {
       clearTimeout(startup); clearInterval(entry.heartbeat); clearTimeout(entry.wall);
       const toolCleanup = await this.sandbox.cancel(run.id);
       await entry.terminalValidation?.catch(error => { entry.done.reject(error); });
+      this.service?.workerExit(run.id, code, signal);
       const cleanup = entry.hadShell || entry.uncertainTool || toolCleanup === 'unconfirmed' ? 'unconfirmed' : 'confirmed';
       this.cleanup.set(run.id, cleanup); this.active.delete(run.id);
       if (entry.result) entry.result.cleanup = cleanup;
@@ -110,17 +111,28 @@ export class Supervisor implements Runtime {
       if (entry.session.input.thinking !== undefined && effective.thinking !== entry.session.input.thinking) fail('UNSUPPORTED_THINKING');
       entry.ready.resolve({ piSession: message.piSession, effective: { ...manifest, model: effective.model, thinking: effective.thinking } });
     } else if (message.kind === 'done') {
+      try {
       if (!within(sessionDir, message.checkpoint.path) || message.checkpoint.path !== this.store.getSession(entry.session.id)?.piSession?.path) fail('STATE_CORRUPT');
       const hash = createHash('sha256').update(await readFile(message.checkpoint.path)).digest('hex');
       if (hash !== message.checkpoint.hash) fail('STATE_CORRUPT');
       if (message.outputPath !== join(this.store.directory, 'runs', entry.run.id, 'worker-output.txt')) fail('STATE_CORRUPT');
       const { bytes, ...checkpoint } = message.checkpoint;
       entry.result = { output: await readFile(message.outputPath, 'utf8'), checkpoint: { ...checkpoint, ...(bytes === undefined ? {} : { bytes }) }, metrics: message.metrics, cleanup: entry.hadShell || entry.uncertainTool ? 'unconfirmed' : 'confirmed' };
+      } catch (error) { this.service?.failure(entry.run.id, 'finalization', error instanceof SpokeError ? error.code : 'STATE_WRITE_FAILED', 'Output/checkpoint validation failed'); throw error; }
     } else if (message.kind === 'error') {
       const code = ['PROVIDER_ERROR','UNSUPPORTED_THINKING','MODEL_CONFIGURATION_MISMATCH','MODEL_UNAVAILABLE','SESSION_NOT_RESUMABLE','LIMIT_EXCEEDED'].includes(message.code) ? message.code : 'WORKER_EXITED';
+      this.service?.failure(entry.run.id, message.stage, code, message.message);
       const error = new SpokeError(code, redact(message.message)); entry.ready.reject(error); entry.done.reject(error);
     } else if (message.kind === 'event') {
       if (message.event === 'limit_reached') { void this.service?.cancel(entry.run.id, 'MAX_TURNS'); return; }
+      if (message.event === 'provider_stopped') {
+        const payload = z.object({ reason: z.enum(['stop','length','toolUse','error','aborted','deferred','pending']) }).parse(message.payload);
+        this.service?.providerStop(entry.run.id, payload.reason);
+      }
+      if (message.event === 'final_text') {
+        const payload = z.object({ empty: z.boolean() }).parse(message.payload);
+        this.service?.finalText(entry.run.id, payload.empty);
+      }
       if (message.event === 'steer_delivered') {
         const value = z.object({ request_key: z.string() }).parse(message.payload); entry.steerAcks.get(value.request_key)?.resolve(); entry.steerAcks.delete(value.request_key);
       } else if (['compaction_start','compaction_end','agent_settled'].includes(message.event)) this.service!.recordEvent(entry.run.id, message.event, {});

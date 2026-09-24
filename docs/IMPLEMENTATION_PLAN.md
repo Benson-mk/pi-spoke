@@ -268,6 +268,8 @@ Events have durable monotonically increasing sequence numbers. Reads are non-des
 
 `events` includes normalized tool start/end and lifecycle evidence, with truncation disclosed. Default event limit is 50, maximum 100. Response text/output previews are bounded to 16 KiB. Overflow is explicitly marked, and output can be retrieved with the `output` view using safe UTF-8 byte offsets and `next_offset_bytes`.
 
+Terminal observation separates provider finish reason, failure stage/category and bounded redacted diagnostic, worker exit code/signal when known, final-text emptiness, invocation outcomes and cleanup status. `length` is surfaced as provider metadata without inferring it from token counts; safe-checkpoint validation still decides completion. Successful tool invocation is not task correctness, and prior workspace edits are never rolled back or replayed automatically. Unknown provider metadata remains null.
+
 Observation never appends a user turn, loads a skill into the worker, runs an LLM summarizer, resumes a session, or acknowledges a worker question.
 
 ### 5.5 `spoke_send`

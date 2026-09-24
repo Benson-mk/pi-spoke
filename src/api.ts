@@ -15,6 +15,16 @@ function preview(text: string, max = 4096) {
   while (end < bytes.length && (bytes[end]! & 0xc0) === 0x80) end--;
   return { text: bytes.subarray(0,end).toString(), truncated: end < bytes.length };
 }
+function terminalSummary(run: Run) {
+  const terminal = run.terminal ?? { failure_stage: null, error_category: null, diagnostic: null, diagnostic_truncated: false,
+    worker_exit_code: null, worker_exit_signal: null, provider_stop_reason: null, final_text_empty: null };
+  const bounded = { ...terminal };
+  while (Buffer.byteLength(JSON.stringify(bounded)) > 1600 && bounded.diagnostic) {
+    bounded.diagnostic = preview(bounded.diagnostic, Math.floor(Buffer.byteLength(bounded.diagnostic) / 2)).text;
+    bounded.diagnostic_truncated = true;
+  }
+  return bounded;
+}
 function page<T>(items: T[], cursor: string | undefined, limit: number, scope: unknown) {
   const revision = digest({ scope, items }).slice(0,24); let offset = 0;
   if (cursor) {
@@ -119,13 +129,33 @@ export class Api {
     }
     const questions = observed.questions.map(question => ({ question_id: question.id, ...preview(redact(question.message), 768) }));
     const effective = preview(JSON.stringify(resourceSummary(observed.run.effective)), 3072);
-    return { protocol_version: 1, instance_id: this.app.instanceId, ...runSummary(observed.run), timed_out: observed.timed_out, durability_error: observed.durability_error,
-      usage: observed.run.metrics ?? null, tool_count: this.app.store.invocations(input.run_id).length,
+    const result = { protocol_version: 1, instance_id: this.app.instanceId, ...runSummary(observed.run), timed_out: observed.timed_out, durability_error: observed.durability_error,
+      usage: observed.run.metrics ?? null, terminal: terminalSummary(observed.run),
+      tool_count: this.app.store.invocations(input.run_id).length, tool_outcomes: observed.tool_outcomes,
       effective_config: effective.truncated ? { preview: effective.text, truncated: true } : JSON.parse(effective.text),
       questions: questions.slice(0,4), questions_truncated: questions.length > 4, events,
       next_after_seq: events.length ? (events.at(-1) as { seq: number }).seq : input.after_seq,
       events_truncated: truncated || this.app.store.events(input.run_id, events.length ? (events.at(-1) as { seq: number }).seq : input.after_seq, 1).length > 0,
       output_preview: output.text, output_truncated: output.truncated, next_offset_bytes: output.next_offset_bytes };
+    while (Buffer.byteLength(JSON.stringify(result)) > 16000) {
+      if (result.output_preview) {
+        result.output_preview = preview(result.output_preview, Math.floor(Buffer.byteLength(result.output_preview) / 2)).text;
+        result.output_truncated = true; result.next_offset_bytes = Buffer.byteLength(result.output_preview);
+      } else if (result.events.length) {
+        result.events.pop(); result.events_truncated = true;
+        result.next_after_seq = result.events.length ? (result.events.at(-1) as { seq: number }).seq : input.after_seq;
+      } else if (result.questions.some(question => question.text.length)) {
+        const question = result.questions.findLast(item => item.text.length)!;
+        question.text = preview(question.text, Math.floor(Buffer.byteLength(question.text) / 2)).text; question.truncated = true;
+      } else if (result.effective_config && typeof result.effective_config === 'object' &&
+        'preview' in result.effective_config && typeof result.effective_config.preview === 'string' && result.effective_config.preview.length) {
+        result.effective_config = { preview: preview(result.effective_config.preview,
+          Math.floor(Buffer.byteLength(result.effective_config.preview) / 2)).text, truncated: true };
+      } else if (result.effective_config) {
+        result.effective_config = { preview: preview(JSON.stringify(result.effective_config), 1024).text, truncated: true };
+      } else fail('LIMIT_EXCEEDED', 'Observation exceeds response envelope');
+    }
+    return result;
   }
   async cancel(raw: unknown) { const parsed = cancelSchema.safeParse(raw); if (!parsed.success) invalidInput(parsed.error.issues); return { protocol_version: 1, instance_id: this.app.instanceId, ...runSummary(await this.app.service.cancel(parsed.data.run_id, parsed.data.reason)) }; }
   spawn(raw: unknown) { return this.app.service.spawn(raw); }

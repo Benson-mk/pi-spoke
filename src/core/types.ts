@@ -9,7 +9,10 @@ export type Receipt = { protocol_version: 1; instance_id: string; session_id: st
 export type Session = { id: string; input: SpawnInput; policy: ResolvedPolicy; created: number; updated: number;
   lastRunId: string; checkpoint: Checkpoint | null; piSession: { id: string; path: string } | null };
 export type Run = { id: string; sessionId: string; state: RunState; input: SpawnInput | SendInput; created: number; updated: number;
-  effective: unknown | null; reason: string | null; cleanup: CleanupStatus; outputPath: string | null; metrics?: RunMetrics };
+  effective: unknown | null; reason: string | null; cleanup: CleanupStatus; outputPath: string | null; metrics?: RunMetrics;
+  terminal?: { failure_stage: 'setup' | 'provider' | 'worker' | 'finalization' | 'cleanup' | null;
+    error_category: string | null; diagnostic: string | null; diagnostic_truncated: boolean; worker_exit_code: number | null; worker_exit_signal: string | null;
+    provider_stop_reason: string | null; final_text_empty: boolean | null } };
 export type Command = { key: string; operation: string; hash: string; receipt: Receipt;
   delivery: 'accepted' | 'dispatched' | 'delivered' | 'uncertain' | 'undelivered' };
 export type Event = { seq: number; runId: string; type: string; payload: unknown; created: number; source: string };

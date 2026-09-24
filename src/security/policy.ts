@@ -71,7 +71,8 @@ export async function resolvePolicy(config: OperatorConfig, input: SpawnInput, c
   if (shellRoots.length) fail('SANDBOX_POLICY_UNSUPPORTED', 'Project shell-write scopes are not yet qualified; scratch-only shell is supported by the macOS baseline.');
   const wall = input.limits.wall_time_ms ?? config.limits.max_run_wall_time_ms;
   const turns = input.limits.max_turns ?? config.limits.max_run_turns;
-  if (wall > config.limits.max_run_wall_time_ms || turns > config.limits.max_run_turns) fail('LIMIT_EXCEEDED');
+  if (wall > config.limits.max_run_wall_time_ms) fail('LIMIT_EXCEEDED', `limits.wall_time_ms requested ${wall} ms; allowed ${config.limits.max_run_wall_time_ms} ms`);
+  if (turns > config.limits.max_run_turns) fail('LIMIT_EXCEEDED', `limits.max_turns requested ${turns} turns; allowed ${config.limits.max_run_turns} turns`);
   const policy = { cwd: cwd.path, workspace: workspace.path, cwdIdentity: cwd, workspaceIdentity: workspace,
     model: input.model, tools: input.tools, file_write_roots: fileRoots.map(root => root.path), shell_write_roots: shellRoots.map(root => root.path),
     rootIdentities: [...fileRoots, ...shellRoots], protected_read_paths: [...new Set(protectedRead)].sort(),

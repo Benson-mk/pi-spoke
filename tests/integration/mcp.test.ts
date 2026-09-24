@@ -60,6 +60,7 @@ test('P4: compiled stdio six-tool public contract, durable receipts, questions, 
     await client.connect(transport);
     const list = await client.listTools(); expect(list.tools.map(tool => tool.name).sort()).toEqual(['spoke_cancel','spoke_catalog','spoke_observe','spoke_send','spoke_sessions','spoke_spawn']);
     expect(list.tools.find(tool => tool.name === 'spoke_observe')?.annotations?.readOnlyHint).toBe(true);
+    expect(JSON.stringify(list.tools.find(tool => tool.name === 'spoke_observe')?.inputSchema)).toContain('16384');
     expect((await call('catalog', { kind: 'models', query: 'fixture' })).structuredContent.items[0]).toMatchObject({ provider: 'fixture', id: 'model', live_verified: false, authentication_configured: null });
     await writeFile(join(root, 'auth'), JSON.stringify({ fixture: { type: 'api_key', key: 'fake-secret-never-output' } }));
     expect((await call('catalog', { kind: 'models', query: 'fixture' })).structuredContent.items[0].authentication_configured).toBe(true);
@@ -81,6 +82,9 @@ test('P4: compiled stdio six-tool public contract, durable receipts, questions, 
     expect((await call('observe', { run_id: spawned.run_id, view: 'output', max_bytes: 1 })).structuredContent).toMatchObject({ text: '', next_offset_bytes: 0, minimum_next_bytes: 4 });
     expect((await call('observe', { run_id: spawned.run_id, view: 'output', max_bytes: 4 })).structuredContent.text).toBe('🙂');
     expect((await call('observe', { run_id: spawned.run_id, view: 'output', offset_bytes: 1 })).structuredContent.error.code).toBe('INVALID_ARGUMENT');
+    expect((await call('observe', { run_id: spawned.run_id, view: 'output', max_bytes: 16385 })).structuredContent.error).toMatchObject({
+      code: 'INVALID_ARGUMENT', message: expect.stringContaining('max_bytes must be an integer from 1 to 16,384 bytes'),
+    });
     const sessions = (await call('sessions', {})).structuredContent.items; expect(sessions[0]).toMatchObject({ session_id: spawned.session_id, continuation_eligible: true });
     const next = (await call('send', { kind: 'continue', request_key: 'next', session_id: spawned.session_id, expected_last_run_id: spawned.run_id, message: 'continue' })).structuredContent;
     await vi.waitFor(async () => expect((await call('observe', { run_id: next.run_id })).structuredContent.state).toBe('completed'), { timeout: 5000 });
